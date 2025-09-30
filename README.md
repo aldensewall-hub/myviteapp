@@ -95,6 +95,38 @@ An initial search bar has been added (`SearchBar` component) along with a mock s
 - Improve accessibility (aria-live region for results, keyboard navigation of list).
 - Add loading skeletons instead of plain text status.
 
+## Real API Integration
+
+Both OMDb and TMDB provider modules are supported. The search service will:
+1. Detect which API keys are present.
+2. Query each provider in parallel.
+3. Normalize and merge results.
+4. Deduplicate by id (provider-prefixed for uniqueness).
+5. Cache the merged list per lowercase query for 60 seconds.
+6. Fallback to mock dataset if no keys configured.
+
+### Environment Variables
+Create a `.env` file in the project root (same level as `package.json`):
+```
+VITE_OMDB_API_KEY=your_omdb_key
+VITE_TMDB_API_KEY=your_tmdb_key
+```
+
+Restart the dev server after adding new env vars.
+
+### Provider Notes
+- OMDb: Free tier requires short queries; may paginate beyond first page (not yet implemented).
+- TMDB: Multi-search mixes movies & TV; we filter only `movie` & `tv` media types.
+- Posters: TMDB uses `https://image.tmdb.org/t/p/w342`; OMDb may return `N/A` which we ignore.
+
+### Caching Strategy
+Simple in-memory Map keyed by the normalized query string with a 60s TTL. This resets on reload (good enough for dev/prototype). Replace with more robust caching or SWR/react-query later.
+
+### Extending Further
+- Add a detail fetch (e.g., clicking a result loads full metadata in a side panel).
+- Integrate a rating component connected to local storage or backend.
+- Add pagination controls when provider returns more results than one page.
+
 ### Using a real API (preview)
 Create a `.env` file:
 ```

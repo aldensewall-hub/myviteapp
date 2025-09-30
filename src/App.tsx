@@ -48,8 +48,16 @@ function App() {
         <ul className="results-list">
           {results.map(r => (
             <li key={r.id} className="result-item">
-              <div className="result-title">{r.title}</div>
-              <div className="result-meta">{r.type.toUpperCase()} • {r.year}</div>
+              {r.poster && (
+                <div className="poster-wrap">
+                  <img src={r.poster} alt={r.title} loading="lazy" />
+                </div>
+              )}
+              <div className="result-body">
+                <div className="result-title">{r.title}</div>
+                <div className="result-meta">{r.type.toUpperCase()} • {r.year}</div>
+                {r.provider && <span className={`provider-badge provider-${r.provider}`}>{r.provider}</span>}
+              </div>
             </li>
           ))}
         </ul>
