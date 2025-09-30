@@ -71,3 +71,34 @@ export default defineConfig([
   },
 ])
 ```
+
+## Movie & Show Finder Prototype
+
+An initial search bar has been added (`SearchBar` component) along with a mock search service (`searchMedia`) that filters an in-memory list of sample movies and shows.
+
+### Where to look
+- Component: `src/components/SearchBar.tsx`
+- Mock service: `src/services/search.ts`
+- Integration: `src/App.tsx`
+
+### How it works
+1. Typing in the search input debounces requests (400ms) before triggering `onSearch`.
+2. Pressing Enter forces an immediate search (if min length reached).
+3. Results are rendered in a simple list showing title, type, and year.
+
+### Next steps (suggested roadmap)
+- Replace mock service with a real API (e.g., OMDb or TMDB).
+- Introduce environment variable handling for API keys (`.env` + `import.meta.env`).
+- Add pagination / infinite scroll when using real API.
+- Implement a rating system (user auth + persistence) and local optimistic updates.
+- Add unit tests for the search service and component behavior.
+- Improve accessibility (aria-live region for results, keyboard navigation of list).
+- Add loading skeletons instead of plain text status.
+
+### Using a real API (preview)
+Create a `.env` file:
+```
+VITE_OMDB_API_KEY=yourkeyhere
+```
+Then access via `import.meta.env.VITE_OMDB_API_KEY` in a new real fetch function.
+
