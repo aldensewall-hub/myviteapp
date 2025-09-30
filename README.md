@@ -126,6 +126,7 @@ Simple in-memory Map keyed by the normalized query string with a 60s TTL. This r
 - Add a detail fetch (e.g., clicking a result loads full metadata in a side panel).
 - Integrate a rating component connected to local storage or backend.
 - Add pagination controls when provider returns more results than one page.
+- Introduced skeleton loading states (`ResultSkeleton`) for initial searches and subtle updating indicator for subsequent queries.
 
 ### Using a real API (preview)
 Create a `.env` file:

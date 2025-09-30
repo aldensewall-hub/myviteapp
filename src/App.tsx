@@ -3,6 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import SearchBar from './components/SearchBar'
+import ResultSkeleton from './components/ResultSkeleton'
 import { searchMedia, type MediaItem } from './services/search'
 
 function App() {
@@ -39,13 +40,16 @@ function App() {
         <h1>Movie & Show Finder</h1>
         <SearchBar onSearch={handleSearch} />
       </header>
-      <main>
-        {loading && <p className="status">Searching...</p>}
+      <main aria-busy={loading} aria-live="polite">
+        {loading && results.length === 0 && <ResultSkeleton />}
+        {loading && results.length > 0 && (
+          <p className="status" style={{opacity:0.6}}>Updating…</p>
+        )}
         {error && <p className="status error">{error}</p>}
         {!loading && !error && lastQuery && results.length === 0 && (
           <p className="status">No results for "{lastQuery}"</p>
         )}
-        <ul className="results-list">
+        <ul className="results-list" aria-label="Search results">
           {results.map(r => (
             <li key={r.id} className="result-item">
               {r.poster && (
