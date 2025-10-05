@@ -27,6 +27,26 @@ const CATEGORIES: Category[] = [
 const LOCATIONS = ['Paris, France','New York, NY','Milan, Italy','London, UK','Tokyo, Japan','Los Angeles, CA','Copenhagen, DK','Seoul, South Korea','Barcelona, Spain','Sydney, Australia'] as const
 export type LocationOption = typeof LOCATIONS[number]
 
+// Coordinates and regions for each location
+const LOCATION_META: Record<LocationOption, { lat: number; lon: number; region: 'Europe' | 'North America' | 'Asia-Pacific' }> = {
+  'Paris, France': { lat: 48.8566, lon: 2.3522, region: 'Europe' },
+  'New York, NY': { lat: 40.7128, lon: -74.0060, region: 'North America' },
+  'Milan, Italy': { lat: 45.4642, lon: 9.1900, region: 'Europe' },
+  'London, UK': { lat: 51.5074, lon: -0.1278, region: 'Europe' },
+  'Tokyo, Japan': { lat: 35.6762, lon: 139.6503, region: 'Asia-Pacific' },
+  'Los Angeles, CA': { lat: 34.0522, lon: -118.2437, region: 'North America' },
+  'Copenhagen, DK': { lat: 55.6761, lon: 12.5683, region: 'Europe' },
+  'Seoul, South Korea': { lat: 37.5665, lon: 126.9780, region: 'Asia-Pacific' },
+  'Barcelona, Spain': { lat: 41.3874, lon: 2.1686, region: 'Europe' },
+  'Sydney, Australia': { lat: -33.8688, lon: 151.2093, region: 'Asia-Pacific' },
+}
+
+export const REGION_GROUPS: Record<'Europe' | 'North America' | 'Asia-Pacific', LocationOption[]> = {
+  'Europe': (Object.keys(LOCATION_META) as LocationOption[]).filter(l => LOCATION_META[l].region === 'Europe'),
+  'North America': (Object.keys(LOCATION_META) as LocationOption[]).filter(l => LOCATION_META[l].region === 'North America'),
+  'Asia-Pacific': (Object.keys(LOCATION_META) as LocationOption[]).filter(l => LOCATION_META[l].region === 'Asia-Pacific'),
+}
+
 // Simple deterministic pseudo-random generator so pagination stays consistent per category
 function seededRandom(seed: string) {
   let h = 2166136261 >>> 0;
@@ -168,6 +188,55 @@ export async function fetchProducts(opts: { category?: Category; page: number; p
 }
 
 export function getLocations(): LocationOption[] { return [...LOCATIONS] }
+
+// Haversine distance in km
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c
+}
+
+export function nearestLocation(lat: number, lon: number): LocationOption {
+  let best: { name: LocationOption; d: number } | null = null
+  for (const name of LOCATIONS) {
+    const m = LOCATION_META[name]
+    const d = haversine(lat, lon, m.lat, m.lon)
+    if (!best || d < best.d) best = { name, d }
+  }
+  return (best?.name ?? 'Paris, France')
+}
+
+// Backend integration: call API if configured
+async function fetchFromApi(params: { style: Style; page: number; pageSize: number; locations?: string[]; category?: Category }): Promise<{ items: Product[]; hasMore: boolean }> {
+  const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
+  if (!base) throw new Error('No API URL configured')
+  const url = new URL('/products', base)
+  url.searchParams.set('style', params.style)
+  url.searchParams.set('page', String(params.page))
+  url.searchParams.set('pageSize', String(params.pageSize))
+  if (params.locations && params.locations.length) url.searchParams.set('locations', params.locations.join(','))
+  if (params.category) url.searchParams.set('category', params.category)
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error('Failed to fetch products')
+  return res.json()
+}
+
+export async function fetchProductsAdvanced(opts: { style: Style; page: number; pageSize: number; locations?: string[]; category?: Category }): Promise<{ items: Product[]; hasMore: boolean }>{
+  const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
+  if (base) {
+    return fetchFromApi(opts)
+  }
+  // Local generation with optional location filtering
+  const res = await fetchProductsByStyle({ style: opts.style, category: opts.category, page: opts.page, pageSize: opts.pageSize })
+  if (opts.locations && opts.locations.length) {
+    const set = new Set(opts.locations)
+    res.items = res.items.filter(i => set.has(i.location))
+  }
+  return res
+}
 
 export function getCategories(): Category[] {
   return CATEGORIES

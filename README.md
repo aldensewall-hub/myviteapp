@@ -135,3 +135,28 @@ VITE_OMDB_API_KEY=yourkeyhere
 ```
 Then access via `import.meta.env.VITE_OMDB_API_KEY` in a new real fetch function.
 
+
+## Shopping app (World Boutique)
+
+A new shopping experience is included with an infinite product feed, style tabs, and robust placeholder images.
+
+Highlights:
+- Fixed top header with brand and routes (Profile, Shop, Settings)
+- Shop page with Streetwear/Casual/Luxury tabs
+- Location-centric filtering with three modes: All, Near me (geolocation), and Pick (multi-select by city or region groups)
+- Infinite scroll with IntersectionObserver
+- Server-side filtering via a small Express backend (optional)
+
+Run the backend for server-side filtering:
+1. Copy `.env.example` to `.env` and ensure `VITE_PRODUCTS_API_URL` points to the backend (default `http://localhost:5178`).
+2. In one terminal: `npm run server`
+3. In another terminal: `npm run dev`
+
+Environment variables:
+- `VITE_PRODUCTS_API_URL`: When set, the frontend will call `/products` on this server for paging + filtering
+- `VITE_IMAGE_SOURCE`: `unsplash` (default) or `picsum` placeholders
+
+Notes:
+- If geolocation is denied or unavailable, the app falls back to a reasonable default region.
+- When the backend is not running, the app generates data locally and filters client-side.
+
