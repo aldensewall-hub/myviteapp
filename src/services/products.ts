@@ -94,17 +94,23 @@ function priceFor(rand: () => number, category: Category) {
 }
 
 // Display label and search query token for colors
-const COLORS: { label: string; query: string }[] = [
-  { label: 'White', query: 'white' },
-  { label: 'Black', query: 'black' },
-  { label: 'Navy', query: 'navy blue' },
-  { label: 'Burgundy', query: 'burgundy red' },
-  { label: 'Olive', query: 'olive green' },
-  { label: 'Sand', query: 'beige sand' },
-  { label: 'Stone', query: 'stone grey' },
-  { label: 'Ivory', query: 'ivory' },
-  { label: 'Charcoal', query: 'charcoal grey' },
+const COLORS: { label: string; query: string; hex: string }[] = [
+  { label: 'White', query: 'white', hex: '#ffffff' },
+  { label: 'Black', query: 'black', hex: '#1f1f1f' },
+  { label: 'Navy', query: 'navy blue', hex: '#1e2a5a' },
+  { label: 'Burgundy', query: 'burgundy red', hex: '#6b1f2a' },
+  { label: 'Olive', query: 'olive green', hex: '#556b2f' },
+  { label: 'Sand', query: 'beige sand', hex: '#d4c5a2' },
+  { label: 'Stone', query: 'stone grey', hex: '#8c8c8c' },
+  { label: 'Ivory', query: 'ivory', hex: '#fffff0' },
+  { label: 'Charcoal', query: 'charcoal grey', hex: '#3a3a3a' },
 ]
+
+function colorLabelToEntry(label: string | undefined) {
+  if (!label) return COLORS[0]
+  const low = label.toLowerCase()
+  return COLORS.find(c => c.label.toLowerCase() === low) || COLORS[0]
+}
 
 function titleCaseCategory(cat: Category) {
   return cat.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
@@ -113,7 +119,7 @@ function titleCaseCategory(cat: Category) {
 function imageFor(style: Style, category: Category, colorQuery: string, id: string) {
   // Prefer Unsplash Source with style/category keywords for fashion-like imagery.
   // Fallback to picsum if needed. For production, ensure proper licensing/attribution.
-  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'loremflickr'
+  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'svg'
   const mode = (import.meta as any).env?.VITE_IMAGE_MODE ?? 'apparel' // 'apparel' | 'people'
 
   const styleKeywords: Record<Style, string[]> = {
@@ -147,6 +153,36 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
     }
     return (h >>> 0) % 10000
   })()
+
+  if (source === 'svg') {
+    // Simple shirt-like silhouette in the requested color
+    const entry = COLORS.find(c => c.query === colorQuery) || COLORS[0]
+    const shirt = entry.hex
+    const bg1 = '#f5efe2'
+    const bg2 = '#efe6d3'
+    const label = `${entry.label} ${titleCaseCategory(category)}`
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000' viewBox='0 0 800 1000'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='${bg1}'/>
+      <stop offset='100%' stop-color='${bg2}'/>
+    </linearGradient>
+  </defs>
+  <rect x='0' y='0' width='800' height='1000' fill='url(#bg)'/>
+  <g>
+    <!-- sleeves -->
+    <rect x='180' y='320' width='150' height='180' rx='20' fill='${shirt}' />
+    <rect x='470' y='320' width='150' height='180' rx='20' fill='${shirt}' />
+    <!-- body -->
+    <rect x='275' y='340' width='250' height='380' rx='28' fill='${shirt}' />
+    <!-- neck opening -->
+    <circle cx='400' cy='340' r='26' fill='${bg1}' stroke='rgba(0,0,0,0.08)' />
+  </g>
+  <text x='400' y='770' font-family='Poppins, Arial, sans-serif' font-size='28' fill='#2b2b2b' text-anchor='middle'>${label}</text>
+</svg>`
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+  }
 
   if (source === 'unsplash') {
     // Apparel (generic clothing product shots) vs People (models wearing it)
@@ -273,7 +309,16 @@ async function fetchFromApi(params: { style: Style; page: number; pageSize: numb
 export async function fetchProductsAdvanced(opts: { style: Style; page: number; pageSize: number; locations?: string[]; category?: Category }): Promise<{ items: Product[]; hasMore: boolean }>{
   const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
   if (base) {
-    return fetchFromApi(opts)
+    const res = await fetchFromApi(opts)
+    // If we're using local SVG images, override the image field to ensure consistency
+    const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'svg'
+    if (source === 'svg') {
+      res.items = res.items.map(i => {
+        const entry = colorLabelToEntry((i as any).color)
+        return { ...i, image: imageFor(opts.style, i.category, entry.query, i.id) }
+      })
+    }
+    return res
   }
   // Local generation with optional location filtering
   const res = await fetchProductsByStyle({ style: opts.style, category: opts.category, page: opts.page, pageSize: opts.pageSize })
