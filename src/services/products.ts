@@ -114,6 +114,7 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
   // Prefer Unsplash Source with style/category keywords for fashion-like imagery.
   // Fallback to picsum if needed. For production, ensure proper licensing/attribution.
   const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'unsplash'
+  const mode = (import.meta as any).env?.VITE_IMAGE_MODE ?? 'apparel' // 'apparel' | 'people'
 
   const styleKeywords: Record<Style, string[]> = {
     Streetwear: ['streetwear','urban','model','runway'],
@@ -148,12 +149,15 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
   })()
 
   if (source === 'unsplash') {
-    // Emphasize people wearing the clothing item in the given color
+    // Apparel (generic clothing product shots) vs People (models wearing it)
+    const base = mode === 'apparel'
+      ? ['clothing','apparel','garment','product','studio','flat lay','on hanger','isolated']
+      : ['fashion','person','model','wearing','portrait']
     const queryParts = [
       colorQuery,
       ...categoryKeywords[category],
       ...styleKeywords[style],
-      'fashion','person','model','wearing','portrait'
+      ...base,
     ]
     const query = queryParts.map(encodeURIComponent).join(',')
     const url = `https://source.unsplash.com/${w}x${h}/?${query}&sig=${sig}`
@@ -161,8 +165,22 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
     return url
   }
 
-  // Fallback picsum (not fashion-specific but safe placeholder)
-  return `https://picsum.photos/seed/${encodeURIComponent(style + '-' + category + '-' + id)}/${w}/${h}`
+  // Fallback: use loremflickr with clothing tags to keep images relevant
+  const tagMap: Record<Category, string[]> = {
+    'short sleeve': ['tshirt','shirt','clothes'],
+    'long sleeve': ['shirt','blouse','clothes'],
+    'jackets': ['jacket','coat','outerwear'],
+    'jeans': ['jeans','denim','clothes'],
+    'pants': ['pants','trousers','clothes'],
+    'sweaters': ['sweater','knitwear','clothes'],
+    'hoodies': ['hoodie','sweatshirt','clothes'],
+    'dresses': ['dress','clothes'],
+    'skirts': ['skirt','clothes'],
+    'accessories': ['bag','handbag','accessories'],
+  }
+  const tags = [colorQuery, ...tagMap[category]].map(encodeURIComponent).join(',')
+  const seed = encodeURIComponent(`${style}-${category}-${id}`)
+  return `https://loremflickr.com/${w}/${h}/${tags}?lock=${seed}`
 }
 
 export async function fetchProductsByStyle(opts: { style: Style; category?: Category; page: number; pageSize: number }): Promise<{ items: Product[]; hasMore: boolean }>{
