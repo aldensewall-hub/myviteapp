@@ -78,7 +78,17 @@ export default function Shop() {
         {items.map(p => (
           <article key={p.id} className="product-card big">
             <div className="big-img-wrap">
-              <img src={p.image} alt={p.title} loading="lazy" />
+              <img
+                src={p.image}
+                alt={p.title}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const el = e.currentTarget as HTMLImageElement
+                  el.onerror = null
+                  el.src = `https://picsum.photos/seed/${encodeURIComponent(p.category + '-' + p.id)}/800/1000`
+                }}
+              />
             </div>
             <div className="big-info">
               <h3 className="city">{p.location}</h3>

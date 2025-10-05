@@ -72,10 +72,53 @@ function priceFor(rand: () => number, category: Category) {
   return Math.round(raw * 100) / 100
 }
 
-function imageFor(category: Category, id: string) {
-  // Use picsum.photos placeholder, seeded by id so it stays stable per product
-  const size = 400
-  return `https://picsum.photos/seed/${encodeURIComponent(category + '-' + id)}/${size}/${size}`
+function imageFor(style: Style, category: Category, id: string) {
+  // Prefer Unsplash Source with style/category keywords for fashion-like imagery.
+  // Fallback to picsum if needed. For production, ensure proper licensing/attribution.
+  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'unsplash'
+
+  const styleKeywords: Record<Style, string[]> = {
+    Streetwear: ['streetwear','urban','model','runway'],
+    Casual: ['casual','everyday fashion','model','outdoor'],
+    Luxury: ['luxury fashion','couture','editorial','runway']
+  }
+  const categoryKeywords: Record<Category, string[]> = {
+    'short sleeve': ['t-shirt','tee','short sleeve'],
+    'long sleeve': ['long sleeve','shirt','blouse'],
+    'jackets': ['jacket','outerwear','coat'],
+    'jeans': ['jeans','denim'],
+    'pants': ['pants','trousers'],
+    'sweaters': ['sweater','knitwear'],
+    'hoodies': ['hoodie','sweatshirt'],
+    'dresses': ['dress','evening dress'],
+    'skirts': ['skirt'],
+    'accessories': ['handbag','bag','accessories']
+  }
+
+  // 4:5 vertical portrait for editorial look
+  const w = 800, h = 1000
+
+  // Deterministic signature per id
+  const sig = (() => {
+    let h = 2166136261 >>> 0; // FNV-1a
+    const seed = style + '|' + category + '|' + id
+    for (let i = 0; i < seed.length; i++) {
+      h ^= seed.charCodeAt(i)
+      h = Math.imul(h, 16777619)
+    }
+    return (h >>> 0) % 10000
+  })()
+
+  if (source === 'unsplash') {
+    const queryParts = [...styleKeywords[style], ...categoryKeywords[category], 'fashion', 'model', 'portrait']
+    const query = queryParts.map(encodeURIComponent).join(',')
+    const url = `https://source.unsplash.com/${w}x${h}/?${query}&sig=${sig}`
+    // Return Unsplash Source; UI will fall back on error.
+    return url
+  }
+
+  // Fallback picsum (not fashion-specific but safe placeholder)
+  return `https://picsum.photos/seed/${encodeURIComponent(style + '-' + category + '-' + id)}/${w}/${h}`
 }
 
 export async function fetchProductsByStyle(opts: { style: Style; category?: Category; page: number; pageSize: number }): Promise<{ items: Product[]; hasMore: boolean }>{
@@ -101,7 +144,7 @@ export async function fetchProductsByStyle(opts: { style: Style; category?: Cate
       id,
       title,
       price: priceFor(rand, category),
-      image: imageFor(category, id),
+      image: imageFor(style, category, id),
       category,
       location,
       brands,
