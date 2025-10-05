@@ -1,76 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
-import SearchBar from './components/SearchBar'
-import ResultSkeleton from './components/ResultSkeleton'
-import { searchMedia, type MediaItem } from './services/search'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Layout from './components/Layout'
+import Shop from './pages/Shop'
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 
-function App() {
-  const [results, setResults] = useState<MediaItem[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [lastQuery, setLastQuery] = useState('')
-
-  async function handleSearch(query: string) {
-    try {
-      setError(null)
-      setLoading(true)
-      setLastQuery(query)
-      const res = await searchMedia(query)
-      setResults(res.items)
-    } catch (e) {
-      setError('Search failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
+export default function App() {
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div className="logos">
-          <a href="https://vite.dev" target="_blank">
-            <img src={viteLogo} className="logo" alt="Vite logo" />
-          </a>
-          <a href="https://react.dev" target="_blank">
-            <img src={reactLogo} className="logo react" alt="React logo" />
-          </a>
-        </div>
-        <h1>Movie & Show Finder</h1>
-        <SearchBar onSearch={handleSearch} />
-      </header>
-      <main aria-busy={loading} aria-live="polite">
-        {loading && results.length === 0 && <ResultSkeleton />}
-        {loading && results.length > 0 && (
-          <p className="status" style={{opacity:0.6}}>Updating…</p>
-        )}
-        {error && <p className="status error">{error}</p>}
-        {!loading && !error && lastQuery && results.length === 0 && (
-          <p className="status">No results for "{lastQuery}"</p>
-        )}
-        <ul className="results-list" aria-label="Search results">
-          {results.map(r => (
-            <li key={r.id} className="result-item">
-              {r.poster && (
-                <div className="poster-wrap">
-                  <img src={r.poster} alt={r.title} loading="lazy" />
-                </div>
-              )}
-              <div className="result-body">
-                <div className="result-title">{r.title}</div>
-                <div className="result-meta">{r.type.toUpperCase()} • {r.year}</div>
-                {r.provider && <span className={`provider-badge provider-${r.provider}`}>{r.provider}</span>}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </main>
-      <footer className="app-footer read-the-docs">
-        Prototype search (mock data). Will integrate real API next.
-      </footer>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Navigate to="/shop" replace />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
-
-export default App
