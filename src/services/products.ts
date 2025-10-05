@@ -119,8 +119,8 @@ function titleCaseCategory(cat: Category) {
 function imageFor(style: Style, category: Category, colorQuery: string, id: string) {
   // Prefer Unsplash Source with style/category keywords for fashion-like imagery.
   // Fallback to picsum if needed. For production, ensure proper licensing/attribution.
-  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'svg'
-  const mode = (import.meta as any).env?.VITE_IMAGE_MODE ?? 'apparel' // 'apparel' | 'people'
+  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'loremflickr'
+  const mode = (import.meta as any).env?.VITE_IMAGE_MODE ?? 'people' // 'apparel' | 'people'
 
   const styleKeywords: Record<Style, string[]> = {
     Streetwear: ['streetwear','urban','model','runway'],
@@ -196,9 +196,7 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
       ...base,
     ]
     const query = queryParts.map(encodeURIComponent).join(',')
-    const url = `https://source.unsplash.com/${w}x${h}/?${query}&sig=${sig}`
-    // Return Unsplash Source; UI will fall back on error.
-    return url
+    return buildImageUrl('unsplash', query, sig, w, h)
   }
 
   // Primary: loremflickr with clothing tags to keep images relevant
@@ -215,8 +213,9 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
       'skirts': ['skirt','clothes'],
       'accessories': ['bag','handbag','accessories'],
     }
-    const tags = [colorQuery, ...tagMap[category]].map(encodeURIComponent).join(',')
-    return `https://loremflickr.com/${w}/${h}/${tags}?lock=${sig}`
+    const people = mode === 'people' ? ['person','model','portrait','street','fashion','wearing'] : []
+    const tags = [colorQuery, ...tagMap[category], ...people].map(encodeURIComponent).join(',')
+    return buildImageUrl('loremflickr', tags, sig, w, h)
   }
 
   // Last-resort generic placeholder
@@ -289,6 +288,22 @@ export function nearestLocation(lat: number, lon: number): LocationOption {
     if (!best || d < best.d) best = { name, d }
   }
   return (best?.name ?? 'Paris, France')
+}
+
+// Build an image URL, optionally proxying through the backend if configured
+export function buildImageUrl(provider: 'loremflickr' | 'unsplash', tagsCSV: string, sig: number, w: number, h: number): string {
+  const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
+  if (base) {
+    const url = new URL('/image', base)
+    url.searchParams.set('provider', provider)
+    url.searchParams.set('tags', tagsCSV)
+    url.searchParams.set('sig', String(sig))
+    url.searchParams.set('w', String(w))
+    url.searchParams.set('h', String(h))
+    return url.toString()
+  }
+  if (provider === 'unsplash') return `https://source.unsplash.com/${w}x${h}/?${tagsCSV}&sig=${sig}`
+  return `https://loremflickr.com/${w}/${h}/${tagsCSV}?lock=${sig}`
 }
 
 // Backend integration: call API if configured

@@ -143,22 +143,62 @@ export default function Shop() {
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const el = e.currentTarget as HTMLImageElement
-                  el.onerror = null
-                  const tagMap: Record<string, string[]> = {
-                    'short sleeve': ['tshirt','shirt','clothes'],
-                    'long sleeve': ['shirt','blouse','clothes'],
-                    'jackets': ['jacket','coat','outerwear'],
-                    'jeans': ['jeans','denim','clothes'],
-                    'pants': ['pants','trousers','clothes'],
-                    'sweaters': ['sweater','knitwear','clothes'],
-                    'hoodies': ['hoodie','sweatshirt','clothes'],
-                    'dresses': ['dress','clothes'],
-                    'skirts': ['skirt','clothes'],
-                    'accessories': ['bag','handbag','accessories'],
+                  const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1' | '2'
+
+                  // 1) Try Unsplash people editorial photo
+                  if (attempt === '0') {
+                    el.dataset.fallbackAttempt = '1'
+                    const w = 800, h = 1000
+                    const people = ['person','model','portrait','street','fashion','wearing']
+                    const catMap: Record<string, string[]> = {
+                      'short sleeve': ['t-shirt','tee','short sleeve'],
+                      'long sleeve': ['long sleeve','shirt','blouse'],
+                      'jackets': ['jacket','outerwear','coat'],
+                      'jeans': ['jeans','denim'],
+                      'pants': ['pants','trousers'],
+                      'sweaters': ['sweater','knitwear'],
+                      'hoodies': ['hoodie','sweatshirt'],
+                      'dresses': ['dress'],
+                      'skirts': ['skirt'],
+                      'accessories': ['handbag','bag'],
+                    }
+                    const parts = [p.color.toLowerCase(), ...(catMap[p.category]||[]), ...people]
+                    const query = parts.map(encodeURIComponent).join(',')
+                    const sig = Math.abs((p.id + '|' + p.category).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+                    el.src = `https://source.unsplash.com/${w}x${h}/?${query}&sig=${sig}`
+                    return
                   }
-                  const tags = [p.color.toLowerCase(), ...(tagMap[p.category]||['clothes'])].map(encodeURIComponent).join(',')
-                  const lock = encodeURIComponent(`${p.category}-${p.id}`)
-                  el.src = `https://loremflickr.com/800/1000/${tags}?lock=${lock}`
+
+                  // 2) Inline SVG silhouette fallback (never fails)
+                  if (attempt === '1') {
+                    el.dataset.fallbackAttempt = '2'
+                    // Simplified person silhouette
+                    const bg1 = '#f5efe2'
+                    const bg2 = '#efe6d3'
+                    const shirt = '#2b2b2b'
+                    const label = `${p.color} ${p.category}`
+                    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000' viewBox='0 0 800 1000'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='${bg1}'/>
+      <stop offset='100%' stop-color='${bg2}'/>
+    </linearGradient>
+  </defs>
+  <rect x='0' y='0' width='800' height='1000' fill='url(#bg)'/>
+  <!-- head -->
+  <circle cx='400' cy='360' r='70' fill='#cfc7b6'/>
+  <!-- torso as jacket/shirt shape -->
+  <path d='M260 450 Q400 380 540 450 L560 660 Q400 740 240 660 Z' fill='${shirt}' opacity='0.9'/>
+  <text x='400' y='820' font-family='Poppins, Arial, sans-serif' font-size='28' fill='#2b2b2b' text-anchor='middle'>${label}</text>
+</svg>`
+                    el.onerror = null
+                    el.src = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+                    return
+                  }
+
+                  // 3) Final guard: disable further errors
+                  el.onerror = null
                 }}
               />
             </div>

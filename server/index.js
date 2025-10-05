@@ -19,6 +19,32 @@ const categoryPrice = {
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
+// Image proxy to improve reliability against client-side blockers
+app.get('/image', async (req, res) => {
+  try {
+    const provider = (req.query.provider || 'loremflickr').toString()
+    const tags = (req.query.tags || '').toString()
+    const sig = (req.query.sig || '1').toString()
+    const w = Number(req.query.w || 800)
+    const h = Number(req.query.h || 1000)
+    let url
+    if (provider === 'unsplash') {
+      url = `https://source.unsplash.com/${w}x${h}/?${tags}&sig=${sig}`
+    } else {
+      url = `https://loremflickr.com/${w}/${h}/${tags}?lock=${sig}`
+    }
+    const r = await fetch(url, { redirect: 'follow' })
+    if (!r.ok) { res.status(502).json({ error: 'upstream image fetch failed' }); return }
+    const ct = r.headers.get('content-type') || 'image/jpeg'
+    res.set('Content-Type', ct)
+    res.set('Cache-Control', 'public, max-age=86400')
+    const ab = await r.arrayBuffer()
+    res.send(Buffer.from(ab))
+  } catch (e) {
+    res.status(500).json({ error: 'image proxy error' })
+  }
+})
+
 app.get('/products', (req, res) => {
   const style = req.query.style || 'Casual'
   const page = Number(req.query.page || 0)
@@ -74,8 +100,9 @@ app.get('/products', (req, res) => {
       'skirts': ['skirt','clothes'],
       'accessories': ['bag','handbag','accessories'],
     }
-    const tags = [color.query, ...(tagMap[category]||['clothes'])].map(encodeURIComponent).join(',')
-    const image = `https://loremflickr.com/800/1000/${tags}?lock=${lock}`
+  const people = ['person','model','portrait','street','fashion','wearing']
+  const tags = [color.query, ...(tagMap[category]||['clothes']), ...people].map(encodeURIComponent).join(',')
+  const image = `https://loremflickr.com/800/1000/${tags}?lock=${lock}`
     return { id, title, price, image, category, location, brands: uniqueBrands(3), color: color.label }
   })
   if (locFilter) items = items.filter(i => locFilter.has(i.location))
