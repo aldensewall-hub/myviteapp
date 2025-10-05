@@ -170,19 +170,27 @@
   border-bottom: 1px solid #E8DEC8;
   padding: 12px 16px;
   z-index: 1000;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
-.brand {
+.top-header .brand {
   color: #333333; /* charcoal */
   text-decoration: none;
   font-weight: 700;
   font-size: 1.2rem;
+  grid-column: 1;
+  justify-self: start;
 }
-.nav { display: flex; gap: 16px; align-items: center; }
+.top-header .nav { 
+  display: flex; 
+  gap: 16px; 
+  align-items: center; 
+  grid-column: 2;
+  justify-self: center;
+}
 .nav-link {
   color: #333333;
   text-decoration: none;
