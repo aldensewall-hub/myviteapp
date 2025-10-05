@@ -113,7 +113,7 @@ function titleCaseCategory(cat: Category) {
 function imageFor(style: Style, category: Category, colorQuery: string, id: string) {
   // Prefer Unsplash Source with style/category keywords for fashion-like imagery.
   // Fallback to picsum if needed. For production, ensure proper licensing/attribution.
-  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'unsplash'
+  const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'loremflickr'
   const mode = (import.meta as any).env?.VITE_IMAGE_MODE ?? 'apparel' // 'apparel' | 'people'
 
   const styleKeywords: Record<Style, string[]> = {
@@ -165,22 +165,26 @@ function imageFor(style: Style, category: Category, colorQuery: string, id: stri
     return url
   }
 
-  // Fallback: use loremflickr with clothing tags to keep images relevant
-  const tagMap: Record<Category, string[]> = {
-    'short sleeve': ['tshirt','shirt','clothes'],
-    'long sleeve': ['shirt','blouse','clothes'],
-    'jackets': ['jacket','coat','outerwear'],
-    'jeans': ['jeans','denim','clothes'],
-    'pants': ['pants','trousers','clothes'],
-    'sweaters': ['sweater','knitwear','clothes'],
-    'hoodies': ['hoodie','sweatshirt','clothes'],
-    'dresses': ['dress','clothes'],
-    'skirts': ['skirt','clothes'],
-    'accessories': ['bag','handbag','accessories'],
+  // Primary: loremflickr with clothing tags to keep images relevant
+  if (source === 'loremflickr') {
+    const tagMap: Record<Category, string[]> = {
+      'short sleeve': ['tshirt','shirt','clothes'],
+      'long sleeve': ['shirt','blouse','clothes'],
+      'jackets': ['jacket','coat','outerwear'],
+      'jeans': ['jeans','denim','clothes'],
+      'pants': ['pants','trousers','clothes'],
+      'sweaters': ['sweater','knitwear','clothes'],
+      'hoodies': ['hoodie','sweatshirt','clothes'],
+      'dresses': ['dress','clothes'],
+      'skirts': ['skirt','clothes'],
+      'accessories': ['bag','handbag','accessories'],
+    }
+    const tags = [colorQuery, ...tagMap[category]].map(encodeURIComponent).join(',')
+    return `https://loremflickr.com/${w}/${h}/${tags}?lock=${sig}`
   }
-  const tags = [colorQuery, ...tagMap[category]].map(encodeURIComponent).join(',')
-  const seed = encodeURIComponent(`${style}-${category}-${id}`)
-  return `https://loremflickr.com/${w}/${h}/${tags}?lock=${seed}`
+
+  // Last-resort generic placeholder
+  return `https://picsum.photos/seed/${encodeURIComponent(style + '-' + category + '-' + id)}/${w}/${h}`
 }
 
 export async function fetchProductsByStyle(opts: { style: Style; category?: Category; page: number; pageSize: number }): Promise<{ items: Product[]; hasMore: boolean }>{

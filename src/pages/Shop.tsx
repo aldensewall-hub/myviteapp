@@ -144,7 +144,21 @@ export default function Shop() {
                 onError={(e) => {
                   const el = e.currentTarget as HTMLImageElement
                   el.onerror = null
-                  el.src = `https://picsum.photos/seed/${encodeURIComponent(p.category + '-' + p.id)}/800/1000`
+                  const tagMap: Record<string, string[]> = {
+                    'short sleeve': ['tshirt','shirt','clothes'],
+                    'long sleeve': ['shirt','blouse','clothes'],
+                    'jackets': ['jacket','coat','outerwear'],
+                    'jeans': ['jeans','denim','clothes'],
+                    'pants': ['pants','trousers','clothes'],
+                    'sweaters': ['sweater','knitwear','clothes'],
+                    'hoodies': ['hoodie','sweatshirt','clothes'],
+                    'dresses': ['dress','clothes'],
+                    'skirts': ['skirt','clothes'],
+                    'accessories': ['bag','handbag','accessories'],
+                  }
+                  const tags = [p.color.toLowerCase(), ...(tagMap[p.category]||['clothes'])].map(encodeURIComponent).join(',')
+                  const lock = encodeURIComponent(`${p.category}-${p.id}`)
+                  el.src = `https://loremflickr.com/800/1000/${tags}?lock=${lock}`
                 }}
               />
             </div>

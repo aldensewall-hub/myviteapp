@@ -61,7 +61,21 @@ app.get('/products', (req, res) => {
     const title = `${color.label} ${category.split(' ').map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' ')}`
     const location = pick(LOCATIONS)
     const price = Math.round((min + rand()*(max-min))*100)/100
-    const image = `https://source.unsplash.com/800x1000/?${encodeURIComponent(color.query)},${encodeURIComponent(category)},clothing,apparel,garment,product,studio,flat%20lay,on%20hanger,isolated&sig=${(i+page*pageSize)%10000}`
+    const lock = (i+page*pageSize)%10000
+    const tagMap = {
+      'short sleeve': ['tshirt','shirt','clothes'],
+      'long sleeve': ['shirt','blouse','clothes'],
+      'jackets': ['jacket','coat','outerwear'],
+      'jeans': ['jeans','denim','clothes'],
+      'pants': ['pants','trousers','clothes'],
+      'sweaters': ['sweater','knitwear','clothes'],
+      'hoodies': ['hoodie','sweatshirt','clothes'],
+      'dresses': ['dress','clothes'],
+      'skirts': ['skirt','clothes'],
+      'accessories': ['bag','handbag','accessories'],
+    }
+    const tags = [color.query, ...(tagMap[category]||['clothes'])].map(encodeURIComponent).join(',')
+    const image = `https://loremflickr.com/800/1000/${tags}?lock=${lock}`
     return { id, title, price, image, category, location, brands: uniqueBrands(3), color: color.label }
   })
   if (locFilter) items = items.filter(i => locFilter.has(i.location))
