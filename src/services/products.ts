@@ -24,6 +24,9 @@ const CATEGORIES: Category[] = [
   'accessories',
 ]
 
+const LOCATIONS = ['Paris, France','New York, NY','Milan, Italy','London, UK','Tokyo, Japan','Los Angeles, CA','Copenhagen, DK','Seoul, South Korea','Barcelona, Spain','Sydney, Australia'] as const
+export type LocationOption = typeof LOCATIONS[number]
+
 // Simple deterministic pseudo-random generator so pagination stays consistent per category
 function seededRandom(seed: string) {
   let h = 2166136261 >>> 0;
@@ -79,7 +82,7 @@ export async function fetchProductsByStyle(opts: { style: Style; category?: Cate
   const { style, category = 'short sleeve', page, pageSize } = opts
   const rand = seededRandom(`${style}-${category}-page-${page}`)
 
-  const cities = ['Paris, France','New York, NY','Milan, Italy','London, UK','Tokyo, Japan','Los Angeles, CA','Copenhagen, DK']
+  const cities = [...LOCATIONS]
   const brandPool: Record<Style, string[]> = {
     Streetwear: ['Supreme','Stüssy','Kith','Carhartt','Nike','Adidas','Palace'],
     Casual: ['Aritzia','Mango','Everlane','Uniqlo','COS','Zara','H&M'],
@@ -120,6 +123,8 @@ export async function fetchProducts(opts: { category?: Category; page: number; p
   // Back-compat: default to Casual style
   return fetchProductsByStyle({ style: 'Casual', ...opts })
 }
+
+export function getLocations(): LocationOption[] { return [...LOCATIONS] }
 
 export function getCategories(): Category[] {
   return CATEGORIES

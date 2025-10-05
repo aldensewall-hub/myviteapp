@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchProductsByStyle, getCategories, type Category, type Product, type Style } from '../services/products'
+import { fetchProductsByStyle, getLocations, type Product, type Style, type LocationOption } from '../services/products'
 
 export default function Shop() {
-  const categories = useMemo(() => getCategories(), [])
-  const [category, setCategory] = useState<Category>('short sleeve')
+  const locations = useMemo(() => getLocations(), [])
+  const [location, setLocation] = useState<LocationOption | 'All'>('All')
   const [style, setStyle] = useState<Style>('Casual')
   const [items, setItems] = useState<Product[]>([])
   const [page, setPage] = useState(0)
@@ -18,14 +18,15 @@ export default function Shop() {
     setPage(0)
     setHasMore(true)
     setLoading(true)
-    fetchProductsByStyle({ style, category, page: 0, pageSize: 10 }).then(res => {
+  fetchProductsByStyle({ style, page: 0, pageSize: 10 }).then(res => {
       if (ignore) return
-      setItems(res.items)
+      const filtered = location === 'All' ? res.items : res.items.filter(it => it.location === location)
+      setItems(filtered)
       setHasMore(res.hasMore)
       setPage(1)
     }).finally(() => setLoading(false))
     return () => { ignore = true }
-  }, [category, style])
+  }, [style, location])
 
   // Infinite loader
   useEffect(() => {
@@ -35,8 +36,9 @@ export default function Shop() {
       const entry = entries[0]
       if (entry.isIntersecting && hasMore && !loading) {
         setLoading(true)
-        fetchProductsByStyle({ style, category, page, pageSize: 10 }).then(res => {
-          setItems(prev => [...prev, ...res.items])
+  fetchProductsByStyle({ style, page, pageSize: 10 }).then(res => {
+          const filtered = location === 'All' ? res.items : res.items.filter(it => it.location === location)
+          setItems(prev => [...prev, ...filtered])
           setHasMore(res.hasMore)
           setPage(p => p + 1)
         }).finally(() => setLoading(false))
@@ -44,7 +46,7 @@ export default function Shop() {
     }, { rootMargin: '200px 0px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [category, page, hasMore, loading])
+  }, [style, location, page, hasMore, loading])
 
   return (
     <section className="shop-page">
@@ -63,10 +65,11 @@ export default function Shop() {
       </div>
 
       <div className="shop-subfilter">
-        <label htmlFor="category">Category</label>
-        <select id="category" value={category} onChange={e => setCategory(e.target.value as Category)}>
-          {categories.map(c => (
-            <option key={c} value={c}>{c}</option>
+        <label htmlFor="location">Location</label>
+        <select id="location" value={location} onChange={e => setLocation(e.target.value as LocationOption | 'All')}>
+          <option value="All">All</option>
+          {locations.map(l => (
+            <option key={l} value={l}>{l}</option>
           ))}
         </select>
       </div>
