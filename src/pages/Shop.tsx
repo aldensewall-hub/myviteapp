@@ -151,6 +151,7 @@ export default function Shop() {
             <div className="big-info">
               <h3 className="city">{p.location}</h3>
               <div className="brands">{p.brands.join(', ')}</div>
+              <div className="brands">{p.color} {p.category}</div>
             </div>
           </article>
         ))}

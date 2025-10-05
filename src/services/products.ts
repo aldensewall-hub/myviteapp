@@ -9,6 +9,7 @@ export interface Product {
   category: Category;
   location: string;
   brands: string[];
+  color: string; // Display color label (e.g., "White")
 }
 
 const CATEGORIES: Category[] = [
@@ -92,7 +93,24 @@ function priceFor(rand: () => number, category: Category) {
   return Math.round(raw * 100) / 100
 }
 
-function imageFor(style: Style, category: Category, id: string) {
+// Display label and search query token for colors
+const COLORS: { label: string; query: string }[] = [
+  { label: 'White', query: 'white' },
+  { label: 'Black', query: 'black' },
+  { label: 'Navy', query: 'navy blue' },
+  { label: 'Burgundy', query: 'burgundy red' },
+  { label: 'Olive', query: 'olive green' },
+  { label: 'Sand', query: 'beige sand' },
+  { label: 'Stone', query: 'stone grey' },
+  { label: 'Ivory', query: 'ivory' },
+  { label: 'Charcoal', query: 'charcoal grey' },
+]
+
+function titleCaseCategory(cat: Category) {
+  return cat.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+}
+
+function imageFor(style: Style, category: Category, colorQuery: string, id: string) {
   // Prefer Unsplash Source with style/category keywords for fashion-like imagery.
   // Fallback to picsum if needed. For production, ensure proper licensing/attribution.
   const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'unsplash'
@@ -103,8 +121,8 @@ function imageFor(style: Style, category: Category, id: string) {
     Luxury: ['luxury fashion','couture','editorial','runway']
   }
   const categoryKeywords: Record<Category, string[]> = {
-    'short sleeve': ['t-shirt','tee','short sleeve'],
-    'long sleeve': ['long sleeve','shirt','blouse'],
+    'short sleeve': ['t-shirt','tee','short sleeve shirt'],
+    'long sleeve': ['long sleeve shirt','blouse'],
     'jackets': ['jacket','outerwear','coat'],
     'jeans': ['jeans','denim'],
     'pants': ['pants','trousers'],
@@ -130,7 +148,13 @@ function imageFor(style: Style, category: Category, id: string) {
   })()
 
   if (source === 'unsplash') {
-    const queryParts = [...styleKeywords[style], ...categoryKeywords[category], 'fashion', 'model', 'portrait']
+    // Emphasize people wearing the clothing item in the given color
+    const queryParts = [
+      colorQuery,
+      ...categoryKeywords[category],
+      ...styleKeywords[style],
+      'fashion','person','model','wearing','portrait'
+    ]
     const query = queryParts.map(encodeURIComponent).join(',')
     const url = `https://source.unsplash.com/${w}x${h}/?${query}&sig=${sig}`
     // Return Unsplash Source; UI will fall back on error.
@@ -155,19 +179,19 @@ export async function fetchProductsByStyle(opts: { style: Style; category?: Cate
 
   const items: Product[] = Array.from({ length: pageSize }).map((_, i) => {
     const id = `${category}-${page}-${i}`
-    const titleAdjs = ['Classic', 'Premium', 'Vintage', 'Modern', 'Essential', 'Relaxed', 'Slim', 'Comfy', 'Athletic']
-    const colors = ['Charcoal', 'Ivory', 'Olive', 'Navy', 'Burgundy', 'Sand', 'Stone', 'Black', 'White']
-    const title = `${randomFrom(rand, titleAdjs)} ${category} in ${randomFrom(rand, colors)}`
+    const color = randomFrom(rand, COLORS)
+    const title = `${color.label} ${titleCaseCategory(category)}`
     const location = randomFrom(rand, cities)
     const brands = uniqueBrands(rand, pool, 3)
     return {
       id,
       title,
       price: priceFor(rand, category),
-      image: imageFor(style, category, id),
+      image: imageFor(style, category, color.query, id),
       category,
       location,
       brands,
+      color: color.label,
     }
   })
 

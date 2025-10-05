@@ -28,8 +28,17 @@ app.get('/products', (req, res) => {
   const locFilter = locationsParam ? new Set(locationsParam.split(',')) : null
 
   const rand = seededRandom(`${style}-${category}-page-${page}`)
-  const titleAdjs = ['Classic','Premium','Vintage','Modern','Essential','Relaxed','Slim','Comfy','Athletic']
-  const colors = ['Charcoal','Ivory','Olive','Navy','Burgundy','Sand','Stone','Black','White']
+  const colors = [
+    { label: 'White', query: 'white' },
+    { label: 'Black', query: 'black' },
+    { label: 'Navy', query: 'navy blue' },
+    { label: 'Burgundy', query: 'burgundy red' },
+    { label: 'Olive', query: 'olive green' },
+    { label: 'Sand', query: 'beige sand' },
+    { label: 'Stone', query: 'stone grey' },
+    { label: 'Ivory', query: 'ivory' },
+    { label: 'Charcoal', query: 'charcoal grey' },
+  ]
   const brandsByStyle = {
     Streetwear: ['Supreme','Stüssy','Kith','Carhartt','Nike','Adidas','Palace'],
     Casual: ['Aritzia','Mango','Everlane','Uniqlo','COS','Zara','H&M'],
@@ -48,11 +57,12 @@ app.get('/products', (req, res) => {
 
   let items = Array.from({length: pageSize}).map((_, i) => {
     const id = `${category}-${page}-${i}`
-    const title = `${pick(titleAdjs)} ${category} in ${pick(colors)}`
+    const color = pick(colors)
+    const title = `${color.label} ${category.split(' ').map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(' ')}`
     const location = pick(LOCATIONS)
     const price = Math.round((min + rand()*(max-min))*100)/100
-    const image = `https://source.unsplash.com/800x1000/?${encodeURIComponent(style)},fashion,${encodeURIComponent(category)},portrait&sig=${(i+page*pageSize)%10000}`
-    return { id, title, price, image, category, location, brands: uniqueBrands(3) }
+    const image = `https://source.unsplash.com/800x1000/?${encodeURIComponent(color.query)},${encodeURIComponent(category)},${encodeURIComponent(style)},fashion,person,model,wearing,portrait&sig=${(i+page*pageSize)%10000}`
+    return { id, title, price, image, category, location, brands: uniqueBrands(3), color: color.label }
   })
   if (locFilter) items = items.filter(i => locFilter.has(i.location))
 
