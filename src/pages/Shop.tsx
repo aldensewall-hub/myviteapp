@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchProductsAdvanced, REGION_GROUPS, nearestLocation, type Product, type Style, type LocationOption } from '../services/products'
+import { fetchProductsAdvanced, REGION_GROUPS, nearestLocation, buildImageUrl, type Product, type Style, type LocationOption } from '../services/products'
 
 export default function Shop() {
   const [locationMode, setLocationMode] = useState<'All' | 'NearMe' | 'Pick'>('All')
@@ -143,7 +143,7 @@ export default function Shop() {
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const el = e.currentTarget as HTMLImageElement
-                  const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1' | '2'
+                  const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1' | '2' | '3'
 
                   // 1) Try Unsplash people editorial photo
                   if (attempt === '0') {
@@ -165,13 +165,37 @@ export default function Shop() {
                     const parts = [p.color.toLowerCase(), ...(catMap[p.category]||[]), ...people]
                     const query = parts.map(encodeURIComponent).join(',')
                     const sig = Math.abs((p.id + '|' + p.category).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
-                    el.src = `https://source.unsplash.com/${w}x${h}/?${query}&sig=${sig}`
+                    el.src = buildImageUrl('unsplash', query, sig, w, h)
+                    return
+                  }
+
+                  // 2) Try loremflickr via proxy
+                  if (attempt === '1') {
+                    el.dataset.fallbackAttempt = '2'
+                    const w = 800, h = 1000
+                    const people = ['person','model','portrait','street','fashion','wearing']
+                    const tagMap: Record<string, string[]> = {
+                      'short sleeve': ['tshirt','shirt','clothes'],
+                      'long sleeve': ['shirt','blouse','clothes'],
+                      'jackets': ['jacket','coat','outerwear'],
+                      'jeans': ['jeans','denim','clothes'],
+                      'pants': ['pants','trousers','clothes'],
+                      'sweaters': ['sweater','knitwear','clothes'],
+                      'hoodies': ['hoodie','sweatshirt','clothes'],
+                      'dresses': ['dress','clothes'],
+                      'skirts': ['skirt','clothes'],
+                      'accessories': ['bag','handbag','accessories'],
+                    }
+                    const parts = [p.color.toLowerCase(), ...(tagMap[p.category]||['clothes']), ...people]
+                    const query = parts.map(encodeURIComponent).join(',')
+                    const sig = Math.abs((p.id + '|' + p.category).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+                    el.src = buildImageUrl('loremflickr', query, sig, w, h)
                     return
                   }
 
                   // 2) Inline SVG silhouette fallback (never fails)
-                  if (attempt === '1') {
-                    el.dataset.fallbackAttempt = '2'
+                  if (attempt === '2') {
+                    el.dataset.fallbackAttempt = '3'
                     // Simplified person silhouette
                     const bg1 = '#f5efe2'
                     const bg2 = '#efe6d3'
