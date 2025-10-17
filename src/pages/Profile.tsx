@@ -1,8 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function Profile() {
   const [styleTag, setStyleTag] = useState('')
   const max = 140
+  const STORAGE_KEY = 'profile.styleTag'
+  const [saved, setSaved] = useState(false)
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const v = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null
+      if (v) setStyleTag(v)
+    } catch {}
+  }, [])
+
+  // Save to localStorage when it changes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, styleTag)
+    } catch {}
+  }, [styleTag])
   return (
     <section className="profile-page">
       <div className="profile-header">
@@ -25,6 +42,20 @@ export default function Profile() {
           <div className="help">
             <span>Max 140 characters</span>
             <span className="counter" data-counter>{styleTag.length} / {max}</span>
+            <div className="actions">
+              <button
+                type="button"
+                className="btn-save"
+                onClick={() => {
+                  try {
+                    if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, styleTag)
+                    setSaved(true)
+                    setTimeout(() => setSaved(false), 1200)
+                  } catch {}
+                }}
+              >Save</button>
+              {saved && <span className="saved">Saved</span>}
+            </div>
           </div>
         </div>
       </div>

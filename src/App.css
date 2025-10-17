@@ -281,4 +281,10 @@
 }
 .style-tag-wrap textarea:focus { border-color: #e7d4ac; box-shadow: 0 0 0 3px rgba(231,212,172,0.35); }
 .style-tag-wrap .help { display: flex; justify-content: space-between; color: #6b6b6b; font-size: 0.85rem; }
-.style-tag-wrap .counter { color: #8b8b8b; }
+.style-tag-wrap .counter { color: #8b8b8b; margin-right: 8px; }
+.style-tag-wrap .help .actions { display: inline-flex; gap: 8px; align-items: center; }
+.btn-save {
+  border: 1px solid #e7d4ac; background: #fff7e6; color: #2b2b2b; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+}
+.btn-save:hover { background: #f3e6cd; }
+.saved { color: #2b2b2b; opacity: 0.7; font-weight: 600; }
