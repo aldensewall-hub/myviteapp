@@ -341,3 +341,28 @@
 .wardrobe-card:hover { background: #fffaf0; border-color: #e7d4ac; }
 .wardrobe-icon { font-size: 28px; }
 .wardrobe-label { font-size: 0.95rem; margin-top: 6px; }
+
+/* Modal for wardrobe gallery */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+  display: grid; place-items: center; z-index: 2000; padding: 16px;
+}
+.modal-panel {
+  width: min(920px, 96vw); max-height: 90vh; overflow: hidden;
+  background: #fffdf6; border: 1px solid #efe4c9; border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18); display: flex; flex-direction: column;
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #efe4c9; }
+.modal-header h3 { margin: 0; color: #2b2b2b; font-size: 1.1rem; }
+.modal-close { background: transparent; border: none; font-size: 18px; cursor: pointer; color: #2b2b2b; }
+.modal-tabs { display: flex; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #efe4c9; }
+.modal-tabs .tab { background: #fff; border: 1px solid #efe4c9; padding: 6px 10px; border-radius: 10px; cursor: pointer; color: #2b2b2b; }
+.modal-tabs .tab.active { background: #fff7e6; border-color: #e7d4ac; font-weight: 600; }
+.modal-grid { padding: 12px; overflow: auto; }
+.modal-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.modal-grid .grid-item { background: #fff; border: 1px solid #efe4c9; border-radius: 12px; overflow: hidden; aspect-ratio: 4 / 5; }
+.modal-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+@media (max-width: 640px) {
+  .modal-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
