@@ -59,7 +59,7 @@ export default function Profile() {
           </div>
         </div>
       </div>
-  <p>Account details and order history will live here.</p>
+  
 
       <div className="profile-stats">
         <div className="stat-card">
