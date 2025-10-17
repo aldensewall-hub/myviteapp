@@ -6,6 +6,16 @@ export default function Profile() {
   const STORAGE_KEY = 'profile.styleTag'
   const [saved, setSaved] = useState(false)
 
+  const wardrobe = [
+    { key: 'pants', label: 'Pants', emoji: '👖' },
+    { key: 'tshirts', label: 'T-Shirts', emoji: '👕' },
+    { key: 'long-sleeve', label: 'Long Sleeve', emoji: '👚' },
+    { key: 'button-ups', label: 'Button Ups', emoji: '👔' },
+    { key: 'coats', label: 'Coats', emoji: '🧥' },
+    { key: 'shoes', label: 'Shoes', emoji: '👞' },
+    { key: 'shorts', label: 'Shorts', emoji: '🩳' },
+  ]
+
   // Load from localStorage on mount
   useEffect(() => {
     try {
@@ -75,6 +85,20 @@ export default function Profile() {
           <div className="stat-label">Favorites</div>
         </div>
       </div>
+
+      <section className="wardrobe" aria-label="Digital Wardrobe">
+        <div className="wardrobe-header">
+          <h2>Digital Wardrobe</h2>
+        </div>
+        <div className="wardrobe-scroller">
+          {wardrobe.map((item) => (
+            <button key={item.key} type="button" className="wardrobe-card" aria-label={item.label}>
+              <div className="wardrobe-icon" aria-hidden>{item.emoji}</div>
+              <div className="wardrobe-label">{item.label}</div>
+            </button>
+          ))}
+        </div>
+      </section>
     </section>
   )
 }
