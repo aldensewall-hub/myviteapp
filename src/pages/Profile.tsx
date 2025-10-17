@@ -59,8 +59,22 @@ export default function Profile() {
           </div>
         </div>
       </div>
-      <h1>My Profile</h1>
-      <p>Account details and order history will live here.</p>
+  <p>Account details and order history will live here.</p>
+
+      <div className="profile-stats">
+        <div className="stat-card">
+          <div className="stat-value">12</div>
+          <div className="stat-label">Tagged Stores</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">34</div>
+          <div className="stat-label">Posts</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-value">18</div>
+          <div className="stat-label">Favorites</div>
+        </div>
+      </div>
     </section>
   )
 }
