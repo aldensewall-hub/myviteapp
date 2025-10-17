@@ -236,3 +236,13 @@
 .pager-dots { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 14px 0 6px; }
 .pager-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: #e3e0d6; display: inline-block; }
 .pager-dots .dot.active { background: #2b2b2b; }
+
+/* Profile page */
+.profile-page { text-align: left; }
+.profile-header { display: flex; align-items: center; gap: 16px; margin: 8px 0 16px; }
+.avatar {
+  width: 120px; height: 120px; border-radius: 20px; overflow: hidden; flex: 0 0 120px;
+  background: linear-gradient(180deg, #f5efe2, #efe6d3);
+  border: 1px solid #efe4c9; display: grid; place-items: center; position: relative;
+}
+.avatar .camera { font-size: 28px; opacity: 0.55; }
