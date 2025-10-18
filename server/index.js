@@ -1,8 +1,47 @@
 import express from 'express'
 import cors from 'cors'
+import multer from 'multer'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3'
 
 const app = express()
 app.use(cors())
+app.use(express.json())
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Local uploads directory
+const UPLOADS_DIR = path.join(__dirname, 'uploads')
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+
+// Serve local uploads statically
+app.use('/uploads', express.static(UPLOADS_DIR))
+
+// Multer storage for local
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename: (_req, file, cb) => {
+    const ts = Date.now()
+    const safe = file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_')
+    cb(null, `${ts}-${safe}`)
+  }
+})
+const upload = multer({ storage })
+
+// Optional S3 configuration via env
+const S3_BUCKET = process.env.S3_BUCKET
+const S3_REGION = process.env.S3_REGION
+const s3 = (S3_BUCKET && S3_REGION) ? new S3Client({ region: S3_REGION }) : null
+
+// Helper to build absolute media URL
+function absoluteUrl(req, p) {
+  const proto = req.headers['x-forwarded-proto'] || req.protocol
+  const host = req.headers['x-forwarded-host'] || req.get('host')
+  return `${proto}://${host}${p}`
+}
 
 // Simple in-memory generator mirroring frontend logic
 const LOCATIONS = ['Paris, France','New York, NY','Milan, Italy','London, UK','Tokyo, Japan','Los Angeles, CA','Copenhagen, DK','Seoul, South Korea','Barcelona, Spain','Sydney, Australia']
@@ -18,6 +57,63 @@ const categoryPrice = {
 }
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
+
+// Upload endpoint: accepts multipart form with fields: category (string), tab ("posts"|"wardrobe"), file
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    const category = (req.body.category || 'misc').toString()
+    const tab = (req.body.tab || 'posts').toString()
+    const localFile = req.file
+    if (!localFile) { res.status(400).json({ error: 'no file' }); return }
+
+  if (s3) {
+      const Key = `uploads/${category}/${tab}/${localFile.filename}`
+      const Body = fs.createReadStream(localFile.path)
+      const ContentType = localFile.mimetype || 'application/octet-stream'
+      await s3.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key, Body, ContentType }))
+      // Optionally delete local temp file
+      try { fs.unlinkSync(localFile.path) } catch {}
+      const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${Key}`
+      res.json({ ok: true, url, storage: 's3', category, tab })
+      return
+    }
+
+  // Local storage path: move into category/tab subfolder
+  const targetDir = path.join(UPLOADS_DIR, category, tab)
+  if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true })
+  const destPath = path.join(targetDir, localFile.filename)
+  try { fs.renameSync(localFile.path, destPath) } catch { /* ignore */ }
+  const url = absoluteUrl(req, `/uploads/${encodeURIComponent(category)}/${encodeURIComponent(tab)}/${encodeURIComponent(localFile.filename)}`)
+  res.json({ ok: true, url, storage: 'local', category, tab })
+  } catch (e) {
+    res.status(500).json({ error: 'upload-failed' })
+  }
+})
+
+// List media by category+tab
+app.get('/media', async (req, res) => {
+  try {
+    const category = (req.query.category || 'misc').toString()
+    const tab = (req.query.tab || 'posts').toString()
+    if (s3) {
+      const Prefix = `uploads/${category}/${tab}/`
+      const r = await s3.send(new ListObjectsV2Command({ Bucket: S3_BUCKET, Prefix }))
+      const items = (r.Contents || []).filter(o => o.Key && !o.Key.endsWith('/')).map(o => ({
+        url: `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${o.Key}`
+      }))
+      res.json({ items })
+      return
+    }
+  const dir = path.join(UPLOADS_DIR, category, tab)
+  if (!fs.existsSync(dir)) { res.json({ items: [] }); return }
+  const files = fs.readdirSync(dir)
+  const base = `${req.protocol}://${req.get('host')}`
+  const items = files.map(f => ({ url: `${base}/uploads/${encodeURIComponent(category)}/${encodeURIComponent(tab)}/${encodeURIComponent(f)}` }))
+  res.json({ items })
+  } catch (e) {
+    res.status(500).json({ error: 'media-list-failed' })
+  }
+})
 
 // Image proxy to improve reliability against client-side blockers
 app.get('/image', async (req, res) => {

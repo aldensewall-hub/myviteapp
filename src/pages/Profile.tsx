@@ -19,6 +19,8 @@ export default function Profile() {
   ]
   const [openCat, setOpenCat] = useState<WardrobeKey | null>(null)
   const [galleryTab, setGalleryTab] = useState<'posts' | 'wardrobe'>('posts')
+  const [remoteImages, setRemoteImages] = useState<string[]>([])
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false)
 
   // Build deterministic images per category and tab
   const galleryImages = useMemo(() => {
@@ -41,7 +43,7 @@ export default function Profile() {
     const provider = ((import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'loremflickr') === 'unsplash' ? 'unsplash' : 'loremflickr'
 
     const tagsCSV = [...baseTags[openCat], ...modeTags].map(encodeURIComponent).join(',')
-    const images: string[] = []
+  const images: string[] = []
     for (let i = 0; i < count; i++) {
       // simple signature for stability
       let hsh = 2166136261 >>> 0
@@ -51,6 +53,34 @@ export default function Profile() {
       images.push(buildImageUrl(provider as any, tagsCSV, sig, w, h))
     }
     return images
+  }, [openCat, galleryTab])
+
+  // Load uploaded media from backend if configured
+  useEffect(() => {
+    let ignore = false
+    async function run() {
+      if (!openCat) return
+      setIsLoadingMedia(true)
+      try {
+        const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
+        if (!base) { setRemoteImages([]); return }
+        const url = new URL('/media', base)
+        url.searchParams.set('category', openCat)
+        url.searchParams.set('tab', galleryTab)
+        const r = await fetch(url.toString())
+        if (!ignore && r.ok) {
+          const j = await r.json()
+          const items = Array.isArray(j.items) ? j.items : []
+          setRemoteImages(items.map((i: any) => i.url).filter(Boolean))
+        }
+      } catch {
+        if (!ignore) setRemoteImages([])
+      } finally {
+        if (!ignore) setIsLoadingMedia(false)
+      }
+    }
+    run()
+    return () => { ignore = true }
   }, [openCat, galleryTab])
 
   // Load from localStorage on mount
@@ -161,11 +191,40 @@ export default function Profile() {
               >Wardrobe</button>
             </div>
             <div className="modal-grid">
-              {galleryImages.map((src, idx) => (
+              {isLoadingMedia && <div className="grid-loading">Loading…</div>}
+              {[...remoteImages, ...galleryImages].slice(0, 12).map((src, idx) => (
                 <div className="grid-item" key={idx}>
                   <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />
                 </div>
               ))}
+            </div>
+            <div className="modal-actions">
+              <label className="btn-upload">
+                <input type="file" accept="image/*" hidden onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file || !openCat) return
+                  try {
+                    const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
+                    if (!base) { alert('No backend configured (VITE_PRODUCTS_API_URL).'); return }
+                    const fd = new FormData()
+                    fd.set('category', openCat)
+                    fd.set('tab', galleryTab)
+                    fd.set('file', file)
+                    const r = await fetch(new URL('/upload', base).toString(), { method: 'POST', body: fd })
+                    if (r.ok) {
+                      const j = await r.json()
+                      if (j?.url) setRemoteImages(prev => [j.url, ...prev])
+                    } else {
+                      alert('Upload failed')
+                    }
+                  } catch {
+                    alert('Upload error')
+                  } finally {
+                    e.currentTarget.value = ''
+                  }
+                }} />
+                Upload photo
+              </label>
             </div>
           </div>
         </div>
