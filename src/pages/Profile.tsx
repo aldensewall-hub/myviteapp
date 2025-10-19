@@ -21,6 +21,9 @@ export default function Profile() {
   const [galleryTab, setGalleryTab] = useState<'posts' | 'wardrobe'>('posts')
   const [remoteImages, setRemoteImages] = useState<string[]>([])
   const [isLoadingMedia, setIsLoadingMedia] = useState(false)
+  const [localUploads, setLocalUploads] = useState<string[]>([])
+  const localKey = (cat: WardrobeKey, tab: 'posts' | 'wardrobe') => `uploads.${cat}.${tab}`
+  const baseApi: string | undefined = (import.meta as any).env?.VITE_PRODUCTS_API_URL
 
   // Build deterministic images per category and tab
   const galleryImages = useMemo(() => {
@@ -62,9 +65,8 @@ export default function Profile() {
       if (!openCat) return
       setIsLoadingMedia(true)
       try {
-        const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
-        if (!base) { setRemoteImages([]); return }
-        const url = new URL('/media', base)
+        if (!baseApi) { setRemoteImages([]); return }
+        const url = new URL('/media', baseApi)
         url.searchParams.set('category', openCat)
         url.searchParams.set('tab', galleryTab)
         const r = await fetch(url.toString())
@@ -81,6 +83,16 @@ export default function Profile() {
     }
     run()
     return () => { ignore = true }
+  }, [openCat, galleryTab])
+
+  // Load local uploads fallback
+  useEffect(() => {
+    if (!openCat) return
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(localKey(openCat, galleryTab)) : null
+      const arr = raw ? JSON.parse(raw) : []
+      if (Array.isArray(arr)) setLocalUploads(arr.filter((s: any) => typeof s === 'string'))
+    } catch { setLocalUploads([]) }
   }, [openCat, galleryTab])
 
   // Load from localStorage on mount
@@ -192,7 +204,7 @@ export default function Profile() {
             </div>
             <div className="modal-grid">
               {isLoadingMedia && <div className="grid-loading">Loading…</div>}
-              {[...remoteImages, ...galleryImages].slice(0, 12).map((src, idx) => (
+              {[...localUploads, ...remoteImages, ...galleryImages].slice(0, 12).map((src, idx) => (
                 <div className="grid-item" key={idx}>
                   <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />
                 </div>
@@ -204,13 +216,27 @@ export default function Profile() {
                   const file = e.target.files?.[0]
                   if (!file || !openCat) return
                   try {
-                    const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
-                    if (!base) { alert('No backend configured (VITE_PRODUCTS_API_URL).'); return }
+                    if (!baseApi) {
+                      // Fallback: persist as data URL in localStorage
+                      const toDataUrl = (f: File) => new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader()
+                        reader.onload = () => resolve(reader.result as string)
+                        reader.onerror = reject
+                        reader.readAsDataURL(f)
+                      })
+                      const dataUrl = await toDataUrl(file)
+                      setLocalUploads(prev => {
+                        const next = [dataUrl, ...prev]
+                        try { if (typeof window !== 'undefined') window.localStorage.setItem(localKey(openCat, galleryTab), JSON.stringify(next)) } catch {}
+                        return next
+                      })
+                      return
+                    }
                     const fd = new FormData()
                     fd.set('category', openCat)
                     fd.set('tab', galleryTab)
                     fd.set('file', file)
-                    const r = await fetch(new URL('/upload', base).toString(), { method: 'POST', body: fd })
+                    const r = await fetch(new URL('/upload', baseApi).toString(), { method: 'POST', body: fd })
                     if (r.ok) {
                       const j = await r.json()
                       if (j?.url) setRemoteImages(prev => [j.url, ...prev])
