@@ -24,6 +24,8 @@ export default function Profile() {
   const [localUploads, setLocalUploads] = useState<string[]>([])
   const localKey = (cat: WardrobeKey, tab: 'posts' | 'wardrobe') => `uploads.${cat}.${tab}`
   const baseApi: string | undefined = (import.meta as any).env?.VITE_PRODUCTS_API_URL
+  const [descriptions, setDescriptions] = useState<Record<string, string>>({})
+  const descKey = (cat: WardrobeKey) => `descriptions.${cat}.posts`
 
   // Build deterministic images per category and tab
   const galleryImages = useMemo(() => {
@@ -94,6 +96,20 @@ export default function Profile() {
       if (Array.isArray(arr)) setLocalUploads(arr.filter((s: any) => typeof s === 'string'))
     } catch { setLocalUploads([]) }
   }, [openCat, galleryTab])
+
+  // Load descriptions (Posts tab only)
+  useEffect(() => {
+    if (!openCat || galleryTab !== 'posts') { setDescriptions({}); return }
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(descKey(openCat)) : null
+      const obj = raw ? JSON.parse(raw) : {}
+      setDescriptions(obj && typeof obj === 'object' ? obj : {})
+    } catch { setDescriptions({}) }
+  }, [openCat, galleryTab])
+
+  function saveDescriptions(cat: WardrobeKey, data: Record<string, string>) {
+    try { if (typeof window !== 'undefined') window.localStorage.setItem(descKey(cat), JSON.stringify(data)) } catch {}
+  }
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -202,11 +218,27 @@ export default function Profile() {
                 onClick={() => setGalleryTab('wardrobe')}
               >Wardrobe</button>
             </div>
-            <div className="modal-grid">
+            <div className={`modal-grid ${galleryTab === 'posts' ? 'posts' : ''}`}>
               {isLoadingMedia && <div className="grid-loading">Loading…</div>}
-              {[...localUploads, ...remoteImages, ...galleryImages].slice(0, 12).map((src, idx) => (
-                <div className="grid-item" key={idx}>
-                  <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />
+              {[...localUploads, ...remoteImages, ...galleryImages].slice(0, 12).map((src) => (
+                <div className="grid-item" key={src}>
+                  <div className="img-wrap">
+                    <img src={src} alt="Post image" loading="lazy" referrerPolicy="no-referrer" />
+                  </div>
+                  {galleryTab === 'posts' && (
+                    <textarea
+                      className="desc-input"
+                      rows={2}
+                      placeholder="Add a caption…"
+                      value={descriptions[src] || ''}
+                      onChange={(e) => {
+                        if (!openCat) return
+                        const next = { ...descriptions, [src]: e.target.value }
+                        setDescriptions(next)
+                      }}
+                      onBlur={() => { if (openCat) saveDescriptions(openCat, descriptions) }}
+                    />
+                  )}
                 </div>
               ))}
             </div>
