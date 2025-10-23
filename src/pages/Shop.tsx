@@ -24,6 +24,38 @@ export default function Shop() {
     color: 'Burgundy',
   }
 
+  // Optional: pull the first uploaded "pants" image from Profile to feature on Shop
+  const [userUploadUrl, setUserUploadUrl] = useState<string | null>(null)
+  const baseApi: string | undefined = (import.meta as any).env?.VITE_PRODUCTS_API_URL
+
+  useEffect(() => {
+    let ignore = false
+    async function load() {
+      // Try backend media listing first if configured
+      if (baseApi) {
+        try {
+          const url = new URL('/media', baseApi)
+          url.searchParams.set('category', 'pants')
+          url.searchParams.set('tab', 'posts')
+          const r = await fetch(url.toString())
+          if (!ignore && r.ok) {
+            const j = await r.json()
+            const first = Array.isArray(j.items) && j.items.length ? j.items[0].url : null
+            if (first) { setUserUploadUrl(first); return }
+          }
+        } catch { /* fall through to local */ }
+      }
+      // Fallback to localStorage-based uploads if backend not available
+      try {
+        const raw = typeof window !== 'undefined' ? window.localStorage.getItem('uploads.pants.posts') : null
+        const arr = raw ? JSON.parse(raw) : []
+        if (!ignore && Array.isArray(arr) && arr.length) setUserUploadUrl(typeof arr[0] === 'string' ? arr[0] : null)
+      } catch { /* ignore */ }
+    }
+    load()
+    return () => { ignore = true }
+  }, [baseApi])
+
   function toggleLoc(l: LocationOption) {
     setSelectedLocations(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l])
   }
@@ -216,6 +248,70 @@ export default function Shop() {
             <div className="brands">{featured.color} {featured.category}</div>
           </div>
         </article>
+        {/* User-uploaded pants image from Profile, if available */}
+        {userUploadUrl && (
+          <article key="featured-user-pants" className="product-card big">
+            <div className="big-img-wrap">
+              <img
+                src={userUploadUrl}
+                alt="User uploaded pants"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  const el = e.currentTarget as HTMLImageElement
+                  const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1' | '2' | '3'
+                  if (attempt === '0') {
+                    el.dataset.fallbackAttempt = '1'
+                    const w = 800, h = 1000
+                    const parts = ['charcoal grey','pants','trousers','clothes','person','model','fashion']
+                    const query = parts.map(encodeURIComponent).join(',')
+                    const sig = 4321
+                    el.src = buildImageUrl('unsplash', query, sig, w, h)
+                    return
+                  }
+                  if (attempt === '1') {
+                    el.dataset.fallbackAttempt = '2'
+                    const w = 800, h = 1000
+                    const parts = ['charcoal','pants','trousers','clothes','person','model','fashion']
+                    const query = parts.map(encodeURIComponent).join(',')
+                    const sig = 4321
+                    el.src = buildImageUrl('loremflickr', query, sig, w, h)
+                    return
+                  }
+                  if (attempt === '2') {
+                    el.dataset.fallbackAttempt = '3'
+                    const bg1 = '#f5efe2'
+                    const bg2 = '#efe6d3'
+                    const garment = '#3a3a3a'
+                    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000' viewBox='0 0 800 1000'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='${bg1}'/>
+      <stop offset='100%' stop-color='${bg2}'/>
+    </linearGradient>
+  </defs>
+  <rect x='0' y='0' width='800' height='1000' fill='url(#bg)'/>
+  <!-- simple pants silhouette -->
+  <path d='M270 360 L360 360 L380 760 L320 760 Z' fill='${garment}'/>
+  <path d='M440 360 L530 360 L480 760 L420 760 Z' fill='${garment}'/>
+  <text x='400' y='860' font-family='Poppins, Arial, sans-serif' font-size='28' fill='#2b2b2b' text-anchor='middle'>Charcoal pants</text>
+</svg>`
+                    el.onerror = null
+                    el.src = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+                    return
+                  }
+                  el.onerror = null
+                }}
+              />
+            </div>
+            <div className="big-info">
+              <h3 className="city">From your profile</h3>
+              <div className="brands">Upload</div>
+              <div className="brands">Charcoal pants</div>
+            </div>
+          </article>
+        )}
         {items.map(p => (
           <article key={p.id} className="product-card big">
             <div className="big-img-wrap">
