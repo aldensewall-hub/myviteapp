@@ -291,9 +291,29 @@ export function nearestLocation(lat: number, lon: number): LocationOption {
 }
 
 // Build an image URL, optionally proxying through the backend if configured
+let apiReachable: boolean | null = null
+let apiCheckInFlight: Promise<boolean> | null = null
+
+async function isApiAvailable(): Promise<boolean> {
+  const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
+  if (!base) return false
+  if (apiReachable !== null) return apiReachable
+  if (apiCheckInFlight) return apiCheckInFlight
+  const controller = new AbortController()
+  const t = setTimeout(() => controller.abort(), 1200)
+  apiCheckInFlight = fetch(new URL('/health', base).toString(), { signal: controller.signal })
+    .then(r => r.ok)
+    .catch(() => false)
+    .finally(() => { clearTimeout(t) })
+  apiReachable = await apiCheckInFlight
+  apiCheckInFlight = null
+  return apiReachable
+}
+
 export function buildImageUrl(provider: 'loremflickr' | 'unsplash', tagsCSV: string, sig: number, w: number, h: number): string {
   const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
-  if (base) {
+  // Use backend proxy only if we've detected it's reachable
+  if (base && apiReachable) {
     const url = new URL('/image', base)
     url.searchParams.set('provider', provider)
     url.searchParams.set('tags', tagsCSV)
@@ -321,19 +341,24 @@ async function fetchFromApi(params: { style: Style; page: number; pageSize: numb
   return res.json()
 }
 
-export async function fetchProductsAdvanced(opts: { style: Style; page: number; pageSize: number; locations?: string[]; category?: Category }): Promise<{ items: Product[]; hasMore: boolean }>{
+export async function fetchProductsAdvanced(opts: { style: Style; page: number; pageSize: number; locations?: string[]; category?: Category }): Promise<{ items: Product[]; hasMore: boolean }> {
   const base = (import.meta as any).env?.VITE_PRODUCTS_API_URL as string | undefined
-  if (base) {
-    const res = await fetchFromApi(opts)
-    // If we're using local SVG images, override the image field to ensure consistency
-    const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'svg'
-    if (source === 'svg') {
-      res.items = res.items.map(i => {
-        const entry = colorLabelToEntry((i as any).color)
-        return { ...i, image: imageFor(opts.style, i.category, entry.query, i.id) }
-      })
+  if (base && await isApiAvailable()) {
+    try {
+      const res = await fetchFromApi(opts)
+      // If we're using local SVG images, override the image field to ensure consistency
+      const source = (import.meta as any).env?.VITE_IMAGE_SOURCE ?? 'svg'
+      if (source === 'svg') {
+        res.items = res.items.map(i => {
+          const entry = colorLabelToEntry((i as any).color)
+          return { ...i, image: imageFor(opts.style, i.category, entry.query, i.id) }
+        })
+      }
+      return res
+    } catch {
+      // Mark API as not reachable to avoid repeated delays
+      apiReachable = false
     }
-    return res
   }
   // Local generation with optional location filtering
   const res = await fetchProductsByStyle({ style: opts.style, category: opts.category, page: opts.page, pageSize: opts.pageSize })
