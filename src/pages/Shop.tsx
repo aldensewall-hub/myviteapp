@@ -11,6 +11,19 @@ export default function Shop() {
   const [loading, setLoading] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
+  // Featured hard-coded example using the user's provided image and metadata.
+  const featured: Product = {
+    id: 'featured-selvage',
+    title: 'Selvage Long Sleeve Stretch',
+    price: 98.0,
+    // Place the image at: public/featured/selvage-long-sleeve.jpg
+    image: '/featured/selvage-long-sleeve.jpg',
+    category: 'long sleeve',
+    location: 'Brooklyn, NY',
+    brands: ['ID Mensware'],
+    color: 'Burgundy',
+  }
+
   function toggleLoc(l: LocationOption) {
     setSelectedLocations(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l])
   }
@@ -133,6 +146,76 @@ export default function Shop() {
       </div>
 
       <div className="product-grid large-cards">
+        {/* Featured card shown first */}
+        <article key={featured.id} className="product-card big">
+          <div className="big-img-wrap">
+            <img
+              src={featured.image}
+              alt={featured.title}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                const el = e.currentTarget as HTMLImageElement
+                const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1' | '2' | '3'
+                if (attempt === '0') {
+                  el.dataset.fallbackAttempt = '1'
+                  const w = 800, h = 1000
+                  const people = ['person','model','portrait','street','fashion','wearing']
+                  const catMap: Record<string, string[]> = {
+                    'long sleeve': ['long sleeve','shirt','blouse'],
+                  }
+                  const parts = [featured.color.toLowerCase(), ...(catMap[featured.category]||[]), ...people]
+                  const query = parts.map(encodeURIComponent).join(',')
+                  const sig = Math.abs((featured.id + '|' + featured.category).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+                  el.src = buildImageUrl('unsplash', query, sig, w, h)
+                  return
+                }
+                if (attempt === '1') {
+                  el.dataset.fallbackAttempt = '2'
+                  const w = 800, h = 1000
+                  const people = ['person','model','portrait','street','fashion','wearing']
+                  const tagMap: Record<string, string[]> = {
+                    'long sleeve': ['shirt','blouse','clothes'],
+                  }
+                  const parts = [featured.color.toLowerCase(), ...(tagMap[featured.category]||['clothes']), ...people]
+                  const query = parts.map(encodeURIComponent).join(',')
+                  const sig = Math.abs((featured.id + '|' + featured.category).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+                  el.src = buildImageUrl('loremflickr', query, sig, w, h)
+                  return
+                }
+                if (attempt === '2') {
+                  el.dataset.fallbackAttempt = '3'
+                  const bg1 = '#f5efe2'
+                  const bg2 = '#efe6d3'
+                  const shirt = '#6b1f2a'
+                  const label = `${featured.color} ${featured.category}`
+                  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000' viewBox='0 0 800 1000'>
+  <defs>
+    <linearGradient id='bg' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%' stop-color='${bg1}'/>
+      <stop offset='100%' stop-color='${bg2}'/>
+    </linearGradient>
+  </defs>
+  <rect x='0' y='0' width='800' height='1000' fill='url(#bg)'/>
+  <circle cx='400' cy='360' r='70' fill='#cfc7b6'/>
+  <path d='M260 450 Q400 380 540 450 L560 660 Q400 740 240 660 Z' fill='${shirt}' opacity='0.9'/>
+  <text x='400' y='820' font-family='Poppins, Arial, sans-serif' font-size='28' fill='#2b2b2b' text-anchor='middle'>${label}</text>
+</svg>`
+                  el.onerror = null
+                  el.src = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+                  return
+                }
+                el.onerror = null
+              }}
+            />
+          </div>
+          <div className="big-info">
+            <h3 className="city">{featured.location}</h3>
+            <div className="brands">{featured.brands.join(', ')}</div>
+            <div className="brands">{featured.color} {featured.category}</div>
+          </div>
+        </article>
         {items.map(p => (
           <article key={p.id} className="product-card big">
             <div className="big-img-wrap">
