@@ -482,7 +482,7 @@
   background: linear-gradient(180deg,#f5efe2,#efe6d3);
   border: 1px solid #efe4c9;
 }
-.store-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.store-logo img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; padding: 8px; }
 .store-meta { text-align: left; }
 .store-title-row { display: flex; align-items: center; gap: 10px; }
 .badge-verified {
@@ -498,3 +498,13 @@
 .btn-follow:hover { background: #f3e6cd; }
 .btn-follow.following { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
 .followers-count { color: #6b6b6b; font-size: 0.95rem; }
+
+/* Store actions, share, contact */
+.store-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.btn-action { border: 1px solid #e7d4ac; background: #fff7e6; color: #2b2b2b; padding: 6px 12px; border-radius: 8px; cursor: pointer; width: fit-content; }
+.btn-action:hover { background: #f3e6cd; }
+.share-row { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.share-btn { border: 1px solid #efe4c9; background: #fff; color: #2b2b2b; padding: 6px 10px; border-radius: 999px; text-decoration: none; cursor: pointer; }
+.share-btn:hover { background: #fffaf0; border-color: #e7d4ac; }
+.store-contact { color: #4a4a4a; font-size: 0.9rem; }
+.store-contact a { color: #2b2b2b; }

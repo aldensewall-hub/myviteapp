@@ -35,7 +35,7 @@ export default function Store() {
     return 1200 + (h % 4800) // 1.2k - 6k
   }
 
-  const meta: StoreMeta & { storyIntro?: string; storyLong?: string; badges?: { label: string; icon: string }[]; storyVideoUrl?: string } = useMemo(() => {
+  const meta: StoreMeta & { storyIntro?: string; storyLong?: string; badges?: { label: string; icon: string }[]; storyVideoUrl?: string; customOrdersEnabled?: boolean; contactEmail?: string; contactPhone?: string; shippingInfo?: string } = useMemo(() => {
     const slug = (storeSlug || '').toLowerCase()
     if (slug === 'id-mensware') {
       return {
@@ -52,7 +52,11 @@ export default function Store() {
           { label: 'Local materials', icon: '🌎' },
           { label: 'Small-batch', icon: '🧵' },
         ],
-        storyVideoUrl: '/stores/id-mensware/intro.mp4'
+        storyVideoUrl: '/stores/id-mensware/intro.mp4',
+        customOrdersEnabled: true,
+        contactEmail: 'contact@idmensware.example',
+        contactPhone: '+1 (347) 555-0134',
+        shippingInfo: 'Ships in 2–4 business days from Brooklyn, NY. Free exchanges within 14 days.'
       }
     }
     return {
@@ -68,7 +72,11 @@ export default function Store() {
         { label: 'Eco', icon: '♻️' },
         { label: 'Local materials', icon: '🌎' },
       ],
-      storyVideoUrl: `/stores/${slug}/intro.mp4`
+      storyVideoUrl: `/stores/${slug}/intro.mp4`,
+      customOrdersEnabled: false,
+      contactEmail: 'hello@example.com',
+      contactPhone: '',
+      shippingInfo: 'Ships in 3–5 business days.'
     }
   }, [storeSlug, storeName])
 
@@ -328,6 +336,14 @@ export default function Store() {
               loading="lazy"
               onError={(e) => {
                 const el = e.currentTarget as HTMLImageElement
+                // Try a nested per-store logo path once before generating a monogram
+                const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1'
+                if (attempt === '0') {
+                  el.dataset.fallbackAttempt = '1'
+                  const altLogo = '/stores/id-mensware/logo.png'
+                  el.src = altLogo
+                  return
+                }
                 // Generate simple monogram fallback
                 const initials = meta.name.split(' ').map(s => s[0]).slice(0,2).join('').toUpperCase()
                 const bg1 = '#f5efe2'
@@ -360,6 +376,47 @@ export default function Store() {
                 {isFollowing ? 'Following' : 'Follow'}
               </button>
               <span className="followers-count">{followers.toLocaleString()} followers</span>
+            </div>
+            <div className="store-actions">
+              {meta.customOrdersEnabled ? (
+                <button
+                  className="btn-action"
+                  onClick={() => {
+                    const subject = encodeURIComponent('Custom Order Request')
+                    const body = encodeURIComponent('Hi, I would love to discuss a custom order.\n\nProduct idea / measurements / timeline:')
+                    const to = meta.contactEmail || ''
+                    if (to) window.location.href = `mailto:${to}?subject=${subject}&body=${body}`
+                  }}
+                >Request Custom Order</button>
+              ) : (
+                <button
+                  className="btn-action"
+                  onClick={() => {
+                    const subject = encodeURIComponent('Message from World Boutique')
+                    const to = meta.contactEmail || ''
+                    if (to) window.location.href = `mailto:${to}?subject=${subject}`
+                  }}
+                >Message Store</button>
+              )}
+              <div className="share-row">
+                <button className="share-btn" onClick={() => {
+                  const url = window.location.href
+                  if (navigator.share) {
+                    navigator.share({ title: meta.name, url }).catch(() => {/* ignore */})
+                  } else if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url).catch(() => {/* ignore */})
+                  }
+                }}>Copy link</button>
+                <a className="share-btn" href={`https://www.instagram.com/`} target="_blank" rel="noopener noreferrer">Instagram</a>
+                <a className="share-btn" href={`https://www.tiktok.com/`} target="_blank" rel="noopener noreferrer">TikTok</a>
+              </div>
+              {(meta.contactEmail || meta.contactPhone || meta.shippingInfo) && (
+                <div className="store-contact">
+                  {meta.contactEmail && <div>Email: <a href={`mailto:${meta.contactEmail}`}>{meta.contactEmail}</a></div>}
+                  {meta.contactPhone && <div>Phone: <a href={`tel:${meta.contactPhone}`}>{meta.contactPhone}</a></div>}
+                  {meta.shippingInfo && <div>{meta.shippingInfo}</div>}
+                </div>
+              )}
             </div>
           </div>
         </div>
