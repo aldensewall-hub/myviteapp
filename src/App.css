@@ -1,3 +1,19 @@
+.store-story {
+  background: #fffdf6;
+  border: 1px solid #efe4c9;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+.store-story .story-media { margin-bottom: 10px; }
+.store-story .story-video { width: 100%; border-radius: 12px; border: 1px solid #efe4c9; background: #000; }
+.store-story .story-intro { margin: 8px 0 10px; color: #2b2b2b; font-size: 1.05rem; }
+.badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
+.badge { background: #f5efe2; border: 1px solid #eadfc5; color: #2b2b2b; padding: 6px 10px; border-radius: 999px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 6px; }
+.badge .i { font-size: 1rem; line-height: 1; }
+.btn-story { border: 1px solid #e7d4ac; background: #fff7e6; color: #2b2b2b; padding: 6px 12px; border-radius: 10px; cursor: pointer; }
+.btn-story:hover { background: #f3e6cd; }
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -232,6 +248,8 @@
 .product-card.big .big-info { padding: 10px 6px 0; text-align: left; }
 .product-card.big .city { margin: 10px 0 4px; font-size: 1.05rem; color: #2b2b2b; font-weight: 700; }
 .product-card.big .brands { color: #4a4a4a; opacity: 0.9; }
+.brand-link { color: #2b2b2b; text-decoration: none; font-weight: 600; }
+.brand-link:hover { text-decoration: underline; }
 
 .pager-dots { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 14px 0 6px; }
 .pager-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: #e3e0d6; display: inline-block; }
@@ -374,3 +392,65 @@
 @media (max-width: 640px) {
   .modal-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
+
+/* Store profile header */
+.store-hero {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #efe6d3;
+  margin-bottom: 14px;
+}
+.store-hero::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.35) 100%);
+  pointer-events: none;
+}
+.store-hero-media { position: relative; aspect-ratio: 16 / 9; }
+.store-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-pan { transform: scale(1.08); animation: slow-pan 18s ease-in-out infinite alternate; }
+@keyframes slow-pan { from { transform: scale(1.08) translateX(0); } to { transform: scale(1.08) translateX(-2.5%); } }
+@media (prefers-reduced-motion: reduce) { .hero-pan { animation: none; transform: none; } }
+
+.store-profile.overlay {
+  position: absolute; left: 16px; right: 16px; bottom: 16px;
+  display: grid; grid-template-columns: 110px auto; gap: 14px; align-items: center;
+  background: rgba(255, 253, 246, 0.78);
+  backdrop-filter: blur(4px);
+  border: 1px solid #efe4c9;
+  border-radius: 14px;
+  padding: 12px;
+}
+.store-profile {
+  display: grid;
+  grid-template-columns: 110px auto;
+  gap: 14px;
+  align-items: center;
+  background: #fffdf6;
+  border: 1px solid #efe4c9;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.store-logo {
+  width: 110px; height: 110px; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg,#f5efe2,#efe6d3);
+  border: 1px solid #efe4c9;
+}
+.store-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.store-meta { text-align: left; }
+.store-title-row { display: flex; align-items: center; gap: 10px; }
+.badge-verified {
+  display: inline-block; font-size: 0.7rem; padding: 4px 8px; border-radius: 999px;
+  background: #e6f7ef; color: #1a7f4b; border: 1px solid #cfeede; font-weight: 700; letter-spacing: 0.3px;
+}
+.store-tagline { margin: 6px 0 4px; color: #4a4a4a; }
+.store-meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.store-location { background: #f5efe2; border: 1px solid #eadfc5; color: #2b2b2b; padding: 4px 10px; border-radius: 999px; font-size: 0.9rem; }
+.btn-follow {
+  border: 1px solid #e7d4ac; background: #fff7e6; color: #2b2b2b; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.btn-follow:hover { background: #f3e6cd; }
+.btn-follow.following { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.followers-count { color: #6b6b6b; font-size: 0.95rem; }
