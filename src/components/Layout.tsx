@@ -36,6 +36,7 @@ export default function Layout() {
       <main className="page-container">
         <Outlet />
       </main>
+      <footer className="powered-by" aria-label="Powered by World Boutique">Powered by World Boutique</footer>
     </div>
   )
 }
