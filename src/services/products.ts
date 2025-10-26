@@ -10,6 +10,7 @@ export interface Product {
   location: string;
   brands: string[];
   color: string; // Display color label (e.g., "White")
+  material?: string; // e.g., "Cotton", "Wool", "Linen"
 }
 
 const CATEGORIES: Category[] = [
@@ -92,6 +93,8 @@ function priceFor(rand: () => number, category: Category) {
   const raw = min + rand() * (max - min)
   return Math.round(raw * 100) / 100
 }
+
+const MATERIALS = ['Cotton','Wool','Linen','Silk','Denim','Twill','Canvas','Cashmere','Recycled'] as const
 
 // Display label and search query token for colors
 const COLORS: { label: string; query: string; hex: string }[] = [
@@ -249,6 +252,7 @@ export async function fetchProductsByStyle(opts: { style: Style; category?: Cate
       location,
       brands,
       color: color.label,
+      material: randomFrom(rand, MATERIALS as unknown as string[]),
     }
   })
 

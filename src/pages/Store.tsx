@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { fetchProductsAdvanced, buildImageUrl, type Product } from '../services/products'
+import { fetchProductsAdvanced, buildImageUrl, type Product, type Style } from '../services/products'
 
 function titleCaseWords(s: string) {
   return s.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').map(w => w ? (w[0].toUpperCase() + w.slice(1).toLowerCase()) : w).join(' ')
@@ -89,6 +89,13 @@ export default function Store() {
   const [isFollowing, setIsFollowing] = useState<boolean>(false)
   const [followers, setFollowers] = useState<number>(meta.followers ?? 0)
 
+  // Filters and sorting
+  const [sortBy, setSortBy] = useState<'price-asc' | 'price-desc' | 'default'>('default')
+  const [styleFilter, setStyleFilter] = useState<Style>('Casual')
+  const [collectionFilter, setCollectionFilter] = useState<string>('')
+  const [materialFilter, setMaterialFilter] = useState<string>('')
+  const [colorFilter, setColorFilter] = useState<string>('')
+
   useEffect(() => {
     const baseKey = `store.${storeSlug}`
     try {
@@ -138,7 +145,7 @@ export default function Store() {
     return null
   }, [storeSlug])
 
-  // Initial load or when store changes
+  // Initial load or when store or primary filters change
   useEffect(() => {
     let ignore = false
     setItems([])
@@ -146,21 +153,21 @@ export default function Store() {
     setHasMore(true)
     setUseBrandFilter(null)
     setLoading(true)
-    fetchProductsAdvanced({ style: 'Casual', page: 0, pageSize: 12 }).then(res => {
+    fetchProductsAdvanced({ style: styleFilter, page: 0, pageSize: 12 }).then(res => {
       if (ignore) return
       const filtered = res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase()))
       if (filtered.length >= 1) {
-        setItems(filtered)
+        setItems(applySecondaryFilters(filtered))
         setUseBrandFilter(true)
       } else {
-        setItems(res.items)
+        setItems(applySecondaryFilters(res.items))
         setUseBrandFilter(false)
       }
       setHasMore(res.hasMore)
       setPage(1)
     }).finally(() => setLoading(false))
     return () => { ignore = true }
-  }, [storeName])
+  }, [storeName, styleFilter, collectionFilter, materialFilter, colorFilter, sortBy])
 
   // Infinite loader
   useEffect(() => {
@@ -170,9 +177,10 @@ export default function Store() {
       const entry = entries[0]
       if (entry.isIntersecting && hasMore && !loading) {
         setLoading(true)
-        fetchProductsAdvanced({ style: 'Casual', page, pageSize: 12 }).then(res => {
-          const next = useBrandFilter ? res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase())) : res.items
-          setItems(prev => [...prev, ...next])
+        fetchProductsAdvanced({ style: styleFilter, page, pageSize: 12 }).then(res => {
+          const base = useBrandFilter ? res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase())) : res.items
+          const next = applySecondaryFilters(base)
+          setItems(prev => sortItems([...prev, ...next]))
           setHasMore(res.hasMore)
           setPage(p => p + 1)
         }).finally(() => setLoading(false))
@@ -180,7 +188,35 @@ export default function Store() {
     }, { rootMargin: '200px 0px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [storeName, page, hasMore, loading, useBrandFilter])
+  }, [storeName, page, hasMore, loading, useBrandFilter, styleFilter, collectionFilter, materialFilter, colorFilter, sortBy])
+
+  // Helper: secondary filters (collection, material, color) and sorting
+  function getCollectionCategories(slug: string): string[] | null {
+    const map: Record<string, string[]> = {
+      'fall-edit': ['jackets','sweaters','long sleeve'],
+      'streetwear-drops': ['hoodies','pants','jeans'],
+      'handwoven-line': ['long sleeve','accessories'],
+    }
+    return map[slug] || null
+  }
+  function applySecondaryFilters(src: Product[]): Product[] {
+    let arr = src
+    if (collectionFilter) {
+      const cats = getCollectionCategories(collectionFilter)
+      if (cats) {
+        const set = new Set(cats)
+        arr = arr.filter(i => set.has(i.category))
+      }
+    }
+    if (materialFilter) arr = arr.filter(i => (i as any).material === materialFilter)
+    if (colorFilter) arr = arr.filter(i => i.color === colorFilter)
+    return sortItems(arr)
+  }
+  function sortItems(arr: Product[]): Product[] {
+    if (sortBy === 'price-asc') return [...arr].sort((a,b) => a.price - b.price)
+    if (sortBy === 'price-desc') return [...arr].sort((a,b) => b.price - a.price)
+    return arr
+  }
 
   return (
     <section className="shop-page">
@@ -335,6 +371,55 @@ export default function Store() {
         </div>
       </section>
 
+      {/* Filters and Sorting */}
+      <div className="store-filters">
+        <div className="row">
+          <label>
+            Sort
+            <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
+              <option value="default">Featured</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+            </select>
+          </label>
+          <label>
+            Style
+            <select value={styleFilter} onChange={e => setStyleFilter(e.target.value as Style)}>
+              <option value="Streetwear">Streetwear</option>
+              <option value="Casual">Casual</option>
+              <option value="Luxury">Luxury</option>
+            </select>
+          </label>
+          <label>
+            Collection
+            <select value={collectionFilter} onChange={e => setCollectionFilter(e.target.value)}>
+              <option value="">All</option>
+              {collections.map(c => (
+                <option key={c.slug} value={c.slug}>{c.title}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Material
+            <select value={materialFilter} onChange={e => setMaterialFilter(e.target.value)}>
+              <option value="">All</option>
+              {Array.from(new Set(items.map(i => (i as any).material).filter(Boolean))).map(m => (
+                <option key={m as string} value={m as string}>{m as string}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Color
+            <select value={colorFilter} onChange={e => setColorFilter(e.target.value)}>
+              <option value="">All</option>
+              {Array.from(new Set(items.map(i => i.color))).map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
       {hero && (
         <div className="product-grid large-cards">
           <article key={hero.id} className="product-card big">
@@ -409,9 +494,12 @@ export default function Store() {
         </div>
       )}
 
-      <div className="product-grid large-cards">
-        {items.map(p => (
-          <article key={p.id} className="product-card big">
+      <div className="product-grid masonry large-cards">
+        {items.map(p => {
+          const sig = Math.abs((p.id + '|' + p.category).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10
+          const variant = sig < 3 ? 'tall' : ''
+          return (
+          <article key={p.id} className={`product-card big ${variant}`}>
             <div className="big-img-wrap">
               <img
                 src={p.image}
@@ -498,7 +586,7 @@ export default function Store() {
               <div className="brands">{p.color} {p.category}</div>
             </div>
           </article>
-        ))}
+        )})}
       </div>
 
       {loading && <p className="status">Loading…</p>}
