@@ -140,59 +140,60 @@ export default function Shop() {
 
   return (
     <section className="shop-page">
-      {/* Sticky search + mode toggle */}
-      <div className="shop-sticky-search">
-        <input
-          className="shop-search-input"
-          type="search"
-          placeholder="Search stores, cities, #tags"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          aria-label="Search stores, cities, and tags"
-        />
-        <div className="discover-toggle" role="tablist" aria-label="Discover mode">
-          <button
-            role="tab"
-            aria-selected={discoverMode === 'Discover'}
-            className={`seg ${discoverMode === 'Discover' ? 'active' : ''}`}
-            onClick={() => {
-              setDiscoverMode('Discover')
-              setLocationMode('All')
-            }}
-          >Discover</button>
-          <button
-            role="tab"
-            aria-selected={discoverMode === 'Nearby'}
-            className={`seg ${discoverMode === 'Nearby' ? 'active' : ''}`}
-            onClick={async () => {
-              setDiscoverMode('Nearby')
-              // If we already have a stored location, use it; else attempt geolocation
-              try {
-                const stored = window.localStorage.getItem('wb.lastKnownLocation')
-                if (stored) {
-                  setSelectedLocations([stored as LocationOption])
-                  setLocationMode('NearMe')
-                } else {
-                  const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    if (!navigator.geolocation) return reject(new Error('Geolocation not supported'))
-                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 })
-                  })
-                  const nearest = nearestLocation(pos.coords.latitude, pos.coords.longitude)
-                  setSelectedLocations([nearest])
-                  setLocationMode('NearMe')
-                  try { window.localStorage.setItem('wb.lastKnownLocation', nearest) } catch {}
-                }
-              } catch (e) {
-                // If geolocation fails, keep Discover
-                setDiscoverMode('Discover')
-                setLocationMode('All')
-              }
-            }}
-          >Nearby</button>
-        </div>
-      </div>
+      
       <div className="shop-hero">
         <h1 className="shop-title">WORLD BOUTIQUE</h1>
+        {/* Sticky search + mode toggle (below the title) */}
+        <div className="shop-sticky-search">
+          <input
+            className="shop-search-input"
+            type="search"
+            placeholder="Search stores, cities, #tags"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search stores, cities, and tags"
+          />
+          <div className="discover-toggle" role="tablist" aria-label="Discover mode">
+            <button
+              role="tab"
+              aria-selected={discoverMode === 'Discover'}
+              className={`seg ${discoverMode === 'Discover' ? 'active' : ''}`}
+              onClick={() => {
+                setDiscoverMode('Discover')
+                setLocationMode('All')
+              }}
+            >Discover</button>
+            <button
+              role="tab"
+              aria-selected={discoverMode === 'Nearby'}
+              className={`seg ${discoverMode === 'Nearby' ? 'active' : ''}`}
+              onClick={async () => {
+                setDiscoverMode('Nearby')
+                // If we already have a stored location, use it; else attempt geolocation
+                try {
+                  const stored = window.localStorage.getItem('wb.lastKnownLocation')
+                  if (stored) {
+                    setSelectedLocations([stored as LocationOption])
+                    setLocationMode('NearMe')
+                  } else {
+                    const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                      if (!navigator.geolocation) return reject(new Error('Geolocation not supported'))
+                      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 8000 })
+                    })
+                    const nearest = nearestLocation(pos.coords.latitude, pos.coords.longitude)
+                    setSelectedLocations([nearest])
+                    setLocationMode('NearMe')
+                    try { window.localStorage.setItem('wb.lastKnownLocation', nearest) } catch {}
+                  }
+                } catch (e) {
+                  // If geolocation fails, keep Discover
+                  setDiscoverMode('Discover')
+                  setLocationMode('All')
+                }
+              }}
+            >Nearby</button>
+          </div>
+        </div>
         <div className="shop-tabs">
           {(['Streetwear','Casual','Luxury'] as Style[]).map(s => (
             <button
