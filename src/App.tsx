@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Shop from './pages/Shop'
 import Store from './pages/Store'
+import StoreCollection from './pages/StoreCollection'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Home from './pages/Home'
@@ -19,6 +20,7 @@ export default function App() {
           {/* Public */}
           <Route path="/shop" element={<Shop />} />
           <Route path="/stores/:storeSlug" element={<Store />} />
+          <Route path="/stores/:storeSlug/collections/:collectionSlug" element={<StoreCollection />} />
 
           {/* Protected */}
           <Route

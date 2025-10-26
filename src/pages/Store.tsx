@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { fetchProductsAdvanced, buildImageUrl, type Product } from '../services/products'
 
 function titleCaseWords(s: string) {
@@ -73,6 +73,17 @@ export default function Store() {
   // Hero image URL with graceful fallbacks
   const heroUrl = `/stores/${(storeSlug || '').toLowerCase()}/hero.jpg`
   const [storyOpen, setStoryOpen] = useState(false)
+  type Collection = { slug: string; title: string; coverUrl: string }
+  const collections: Collection[] = useMemo(() => {
+    const slug = (storeSlug || '').toLowerCase()
+    const base = `/stores/${slug}`
+    const defs: Collection[] = [
+      { slug: 'fall-edit', title: 'Fall Edit', coverUrl: `${base}/collections/fall-edit.jpg` },
+      { slug: 'streetwear-drops', title: 'Streetwear Drops', coverUrl: `${base}/collections/streetwear-drops.jpg` },
+      { slug: 'handwoven-line', title: 'Handwoven Line', coverUrl: `${base}/collections/handwoven-line.jpg` },
+    ]
+    return defs
+  }, [storeSlug])
 
   // Follow state persisted in localStorage
   const [isFollowing, setIsFollowing] = useState<boolean>(false)
@@ -287,6 +298,42 @@ export default function Store() {
         )}
         <button className="btn-story" onClick={() => setStoryOpen(true)}>Read full story</button>
       </div>
+
+      {/* Featured Collections */}
+      <section className="collections">
+        <div className="collections-header">
+          <h2>Featured Collections</h2>
+        </div>
+        <div className="collections-scroller">
+          {collections.map((c) => (
+            <a key={c.slug} className="collection-card" href={`/stores/${encodeURIComponent(storeSlug || '')}/collections/${encodeURIComponent(c.slug)}`}>
+              <span className="cover">
+                <img
+                  src={c.coverUrl}
+                  alt={`${c.title} cover`}
+                  loading="lazy"
+                  onError={(e) => {
+                    const el = e.currentTarget as HTMLImageElement
+                    const attempt = (el.dataset.fallbackAttempt || '0') as '0' | '1'
+                    const sig = Math.abs(((storeSlug||'') + '|' + c.slug).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+                    if (attempt === '0') {
+                      el.dataset.fallbackAttempt = '1'
+                      const w = 960, h = 640
+                      const tags = ['storefront','boutique','editorial','fashion','window','runway'].map(encodeURIComponent).join(',')
+                      el.src = buildImageUrl('unsplash', tags, sig, w, h)
+                      return
+                    }
+                    const w = 960, h = 640
+                    const tags = ['storefront','boutique','fashion'].map(encodeURIComponent).join(',')
+                    el.src = buildImageUrl('loremflickr', tags, sig, w, h)
+                  }}
+                />
+              </span>
+              <span className="title">{c.title}</span>
+            </a>
+          ))}
+        </div>
+      </section>
 
       {hero && (
         <div className="product-grid large-cards">
