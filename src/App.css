@@ -47,6 +47,17 @@
 .view-toggle { display: inline-flex; background: #fff; border: 1px solid #efe4c9; border-radius: 999px; overflow: hidden; }
 .view-toggle .seg { border: none; background: transparent; padding: 8px 12px; cursor: pointer; color: #2b2b2b; font-weight: 600; }
 .view-toggle .seg.active { background: #fff7e6; }
+
+/* Community scroller */
+.community { margin: 18px 0 6px; text-align: left; }
+.community h2 { margin: 0 2px 4px; font-size: 1.25rem; letter-spacing: 0.5px; color: #2b2b2b; }
+.community-sub { margin: 0 2px 10px; font-size: 0.95rem; color: #6b6b6b; }
+.community-scroller { display: grid; grid-auto-flow: column; grid-auto-columns: 160px; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+.community-scroller::-webkit-scrollbar { height: 8px; }
+.community-scroller::-webkit-scrollbar-thumb { background: #e6dcc6; border-radius: 999px; }
+.community-scroller::-webkit-scrollbar-track { background: #f7f2e6; border-radius: 999px; }
+.community-card { scroll-snap-align: start; height: 200px; width: 160px; border-radius: 12px; overflow: hidden; background: #eee; border: 1px solid #efe4c9; }
+.community-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 #root {
   max-width: 1280px;
   margin: 0 auto;

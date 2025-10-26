@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { fetchProductsAdvanced, buildImageUrl, type Product, type Style } from '../services/products'
 
 function titleCaseWords(s: string) {
@@ -16,6 +16,8 @@ export default function Store() {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const storeName = useMemo(() => titleCaseWords(decodeURIComponent(storeSlug)), [storeSlug])
+  const BRAND_FOCUS = 'ID Mensware'
+  const brandFocusLow = BRAND_FOCUS.toLowerCase()
 
   type StoreMeta = {
     name: string
@@ -96,6 +98,7 @@ export default function Store() {
   const [materialFilter, setMaterialFilter] = useState<string>('')
   const [colorFilter, setColorFilter] = useState<string>('')
   const [viewMode, setViewMode] = useState<'shop' | 'styled'>('shop')
+  const [communityPosts, setCommunityPosts] = useState<string[]>([])
 
   useEffect(() => {
     const baseKey = `store.${storeSlug}`
@@ -140,12 +143,13 @@ export default function Store() {
     setLoading(true)
     fetchProductsAdvanced({ style: styleFilter, page: 0, pageSize: 12 }).then(res => {
       if (ignore) return
-      const filtered = res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase()))
+      const filtered = res.items.filter(i => i.brands.some(b => b.toLowerCase() === brandFocusLow))
       if (filtered.length >= 1) {
         setItems(applySecondaryFilters(filtered))
         setUseBrandFilter(true)
       } else {
-        setItems(applySecondaryFilters(res.items))
+        const remapped = res.items.map(i => ({ ...i, brands: [BRAND_FOCUS] }))
+        setItems(applySecondaryFilters(remapped))
         setUseBrandFilter(false)
       }
       setHasMore(res.hasMore)
@@ -163,7 +167,9 @@ export default function Store() {
       if (entry.isIntersecting && hasMore && !loading) {
         setLoading(true)
         fetchProductsAdvanced({ style: styleFilter, page, pageSize: 12 }).then(res => {
-          const base = useBrandFilter ? res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase())) : res.items
+          let base = res.items
+          if (useBrandFilter) base = res.items.filter(i => i.brands.some(b => b.toLowerCase() === brandFocusLow))
+          else base = res.items.map(i => ({ ...i, brands: [BRAND_FOCUS] }))
           const next = applySecondaryFilters(base)
           setItems(prev => sortItems([...prev, ...next]))
           setHasMore(res.hasMore)
@@ -224,6 +230,46 @@ export default function Store() {
     const sig = Math.abs((p.id + '|' + p.category + '|styled').split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
     return buildImageUrl('unsplash', query, sig, w, h)
   }
+
+  // Load Community ("Seen in the wild") posts: try backend first, then localStorage, then leave empty
+  useEffect(() => {
+    let ignore = false
+    async function loadCommunity() {
+      const baseApi: string | undefined = (import.meta as any).env?.VITE_PRODUCTS_API_URL
+      const slug = (storeSlug || '').toLowerCase()
+      const results: string[] = []
+      if (baseApi) {
+        try {
+          const url = new URL('/media', baseApi)
+          url.searchParams.set('tab', 'posts')
+          url.searchParams.set('store', slug)
+          url.searchParams.set('tag', 'wild')
+          const r = await fetch(url.toString())
+          if (r.ok) {
+            const j = await r.json().catch(() => ({} as any))
+            if (Array.isArray(j.items)) {
+              for (const it of j.items) if (it?.url) results.push(it.url)
+            }
+          }
+        } catch {/* ignore */}
+      }
+      if (!results.length && typeof window !== 'undefined') {
+        try {
+          const keys = ['pants','long-sleeve','jackets','jeans','hoodies','sweaters','short-sleeve','accessories','skirts','dresses']
+          for (const k of keys) {
+            const raw = window.localStorage.getItem(`uploads.${k}.posts`)
+            const arr = raw ? JSON.parse(raw) : []
+            if (Array.isArray(arr)) for (const u of arr) if (typeof u === 'string') results.push(u)
+          }
+        } catch {/* ignore */}
+      }
+      // Dedupe and limit
+      const uniq = Array.from(new Set(results)).slice(0, 20)
+      if (!ignore) setCommunityPosts(uniq)
+    }
+    loadCommunity()
+    return () => { ignore = true }
+  }, [storeSlug])
 
   return (
     <section className="shop-page">
@@ -374,6 +420,40 @@ export default function Store() {
               </span>
               <span className="title">{c.title}</span>
             </a>
+          ))}
+        </div>
+      </section>
+
+      {/* Community - Seen in the wild */}
+      <section className="community">
+        <h2>Community</h2>
+        <div className="community-sub">Seen in the wild</div>
+        <div className="community-scroller">
+          {communityPosts.length === 0 && [1,2,3,4,5,6].map(n => {
+            const sig = Math.abs(((storeSlug||'') + '|wild|' + n).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+            const w = 320, h = 400
+            const tags = [meta.name, 'street style','candid','fashion','wearing'].map(encodeURIComponent).join(',')
+            const url = buildImageUrl('unsplash', tags, sig, w, h)
+            return (
+              <div key={`ph-${n}`} className="community-card"><img src={url} alt="Community post" loading="lazy" /></div>
+            )
+          })}
+          {communityPosts.map((u, i) => (
+            <div key={`cp-${i}`} className="community-card">
+              <img
+                src={u}
+                alt="Community post"
+                loading="lazy"
+                onError={(e) => {
+                  const el = e.currentTarget as HTMLImageElement
+                  const sig = Math.abs(((storeSlug||'') + '|wild|' + i).split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+                  const w = 320, h = 400
+                  const tags = [meta.name, 'street style','candid','fashion','wearing'].map(encodeURIComponent).join(',')
+                  el.onerror = null
+                  el.src = buildImageUrl('loremflickr', tags, sig, w, h)
+                }}
+              />
+            </div>
           ))}
         </div>
       </section>

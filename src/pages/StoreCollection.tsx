@@ -32,6 +32,8 @@ function getCollectionsFor(storeSlug: string): Record<string, CollectionMeta> {
 
 export default function StoreCollection() {
   const { storeSlug = '', collectionSlug = '' } = useParams()
+  const BRAND_FOCUS = 'ID Mensware'
+  const brandFocusLow = BRAND_FOCUS.toLowerCase()
   const storeName = useMemo(() => titleCaseWords(decodeURIComponent(storeSlug)), [storeSlug])
   const collections = useMemo(() => getCollectionsFor(storeSlug), [storeSlug])
   const meta = collections[collectionSlug]
@@ -48,9 +50,9 @@ export default function StoreCollection() {
     const style = meta?.styleHint || 'Casual'
     fetchProductsAdvanced({ style, page: 0, pageSize: 12 }).then(res => {
       if (ignore) return
-      // Filter by brand first (store name), then by optional categories
-      let filtered = res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase()))
-      if (!filtered.length) filtered = res.items
+      // Force ID Mensware focus regardless of store
+      let filtered = res.items.filter(i => i.brands.some(b => b.toLowerCase() === brandFocusLow))
+      if (!filtered.length) filtered = res.items.map(i => ({ ...i, brands: [BRAND_FOCUS] }))
       if (meta?.categories?.length) {
         const set = new Set(meta.categories)
         filtered = filtered.filter(i => set.has(i.category))
@@ -71,8 +73,8 @@ export default function StoreCollection() {
         setLoading(true)
         const style = meta?.styleHint || 'Casual'
         fetchProductsAdvanced({ style, page, pageSize: 12 }).then(res => {
-          let next = res.items.filter(i => i.brands.some(b => b.toLowerCase() === storeName.toLowerCase()))
-          if (!next.length) next = res.items
+          let next = res.items.filter(i => i.brands.some(b => b.toLowerCase() === brandFocusLow))
+          if (!next.length) next = res.items.map(i => ({ ...i, brands: [BRAND_FOCUS] }))
           if (meta?.categories?.length) {
             const set = new Set(meta.categories)
             next = next.filter(i => set.has(i.category))
