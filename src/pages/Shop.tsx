@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { fetchProductsAdvanced, REGION_GROUPS, nearestLocation, buildImageUrl, type Product, type Style, type LocationOption } from '../services/products'
 
 export default function Shop() {
@@ -10,6 +11,12 @@ export default function Shop() {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const slugify = (name: string) => name
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
 
   // Featured hard-coded example using the user's provided image and metadata.
   const featured: Product = {
@@ -244,7 +251,14 @@ export default function Shop() {
           </div>
           <div className="big-info">
             <h3 className="city">{featured.location}</h3>
-            <div className="brands">{featured.brands.join(', ')}</div>
+            <div className="brands">
+              {featured.brands.map((b, i) => (
+                <span key={b}>
+                  <Link to={`/stores/${slugify(b)}`} className="brand-link">{b}</Link>
+                  {i < featured.brands.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </div>
             <div className="brands">{featured.color} {featured.category}</div>
           </div>
         </article>
@@ -407,7 +421,14 @@ export default function Shop() {
             </div>
             <div className="big-info">
               <h3 className="city">{p.location}</h3>
-              <div className="brands">{p.brands.join(', ')}</div>
+              <div className="brands">
+                {p.brands.map((b, i) => (
+                  <span key={`${p.id}-${b}`}>
+                    <Link to={`/stores/${slugify(b)}`} className="brand-link">{b}</Link>
+                    {i < p.brands.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </div>
               <div className="brands">{p.color} {p.category}</div>
             </div>
           </article>
