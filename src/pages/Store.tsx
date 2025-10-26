@@ -95,6 +95,7 @@ export default function Store() {
   const [collectionFilter, setCollectionFilter] = useState<string>('')
   const [materialFilter, setMaterialFilter] = useState<string>('')
   const [colorFilter, setColorFilter] = useState<string>('')
+  const [viewMode, setViewMode] = useState<'shop' | 'styled'>('shop')
 
   useEffect(() => {
     const baseKey = `store.${storeSlug}`
@@ -216,6 +217,28 @@ export default function Store() {
     if (sortBy === 'price-asc') return [...arr].sort((a,b) => a.price - b.price)
     if (sortBy === 'price-desc') return [...arr].sort((a,b) => b.price - a.price)
     return arr
+  }
+
+  // Build image for Styled View (people wearing it)
+  function styledImage(p: Product): string {
+    const w = 800, h = 1000
+    const people = ['person','model','portrait','street','fashion','wearing']
+    const catMap: Record<string, string[]> = {
+      'short sleeve': ['t-shirt','tee','short sleeve'],
+      'long sleeve': ['long sleeve','shirt','blouse'],
+      'jackets': ['jacket','outerwear','coat'],
+      'jeans': ['jeans','denim'],
+      'pants': ['pants','trousers'],
+      'sweaters': ['sweater','knitwear'],
+      'hoodies': ['hoodie','sweatshirt'],
+      'dresses': ['dress'],
+      'skirts': ['skirt'],
+      'accessories': ['handbag','bag','accessories'],
+    }
+    const parts = [p.color.toLowerCase(), ...(catMap[(p as any).category]||[]), ...people]
+    const query = parts.map(encodeURIComponent).join(',')
+    const sig = Math.abs((p.id + '|' + p.category + '|styled').split('').reduce((a,c)=>((a<<5)-a)+c.charCodeAt(0),0)) % 10000
+    return buildImageUrl('unsplash', query, sig, w, h)
   }
 
   return (
@@ -374,6 +397,20 @@ export default function Store() {
       {/* Filters and Sorting */}
       <div className="store-filters">
         <div className="row">
+          <div className="view-toggle" role="tablist" aria-label="View mode">
+            <button
+              role="tab"
+              aria-selected={viewMode==='shop'}
+              className={`seg ${viewMode==='shop'?'active':''}`}
+              onClick={() => setViewMode('shop')}
+            >Shop View</button>
+            <button
+              role="tab"
+              aria-selected={viewMode==='styled'}
+              className={`seg ${viewMode==='styled'?'active':''}`}
+              onClick={() => setViewMode('styled')}
+            >Styled View</button>
+          </div>
           <label>
             Sort
             <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
@@ -502,7 +539,7 @@ export default function Store() {
           <article key={p.id} className={`product-card big ${variant}`}>
             <div className="big-img-wrap">
               <img
-                src={p.image}
+                src={viewMode === 'styled' ? styledImage(p) : p.image}
                 alt={p.title}
                 loading="lazy"
                 referrerPolicy="no-referrer"
